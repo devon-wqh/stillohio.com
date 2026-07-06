@@ -1,0 +1,442 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg: #060606;
+  --text: #f4efe4;
+  --muted: #b6aa93;
+  --accent: #c59b57;
+  --line-yellow: #ffcc00;
+  --border: rgba(255,255,255,0.14);
+  --field: #808080;
+  --mono: 'Space Mono', 'Courier New', monospace;
+  --serif: Georgia, "Times New Roman", serif;
+}
+
+/* Thin shiny glare that slowly circles a button's outline */
+@property --glare-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+a { color: inherit; }
+img, svg { display: block; max-width: 100%; }
+
+/* Header / nav (content pages) */
+.site-header {
+  position: sticky;
+  top: 0;
+  /* Must outrank .site-menu (999) — otherwise the fullscreen overlay paints
+     over this header and hides the hamburger's open (X) state. */
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.5rem;
+  background: rgba(6,6,6,0.78);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.brand {
+  display: block;
+  text-decoration: none;
+}
+.brand img {
+  height: 2.4rem;
+  width: auto;
+}
+/* Hamburger toggle */
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px;
+  z-index: 1001;
+  position: relative;
+}
+.hamburger span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: var(--text);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.hamburger[aria-expanded="true"] span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.hamburger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+/* Fullscreen menu overlay */
+.site-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  background: rgba(6,6,6,0.97);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.site-menu.open { opacity: 1; pointer-events: all; }
+.site-menu a {
+  color: var(--muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  /* Wider kerning, smaller size — reads colder and more clinical */
+  letter-spacing: 0.34em;
+  font-size: 0.62rem;
+  transition: color 0.2s;
+}
+.site-menu a:hover { color: var(--text); }
+
+/* Fullscreen hero (index page) */
+.hero-full {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background:
+    linear-gradient(to bottom, rgba(6,6,6,0.35) 0%, rgba(6,6,6,0.15) 35%, rgba(6,6,6,0.65) 70%, rgba(6,6,6,0.96) 100%),
+    var(--field) url("images/Still Ohio Still 1.png") center center / cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 0 1.5rem;
+}
+.hero-brand {
+  display: block;
+  text-decoration: none;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.35));
+}
+.hero-brand img {
+  width: clamp(260px, 34vw, 460px);
+  height: auto;
+  opacity: 1;
+}
+.hero-options {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  /* Slightly larger than the visual resting gap so a button growing 5% on
+     hover never closes the distance to its neighbor below the original gap. */
+  gap: 1.35rem;
+  width: 100%;
+  max-width: 720px;
+  filter: drop-shadow(0 4px 18px rgba(0,0,0,0.7));
+}
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 180px;
+  gap: 0.35rem;
+  padding: 1.1rem 1rem;
+  border: 1px solid rgba(244,239,228,0.35);
+  border-radius: 2px;
+  text-decoration: none;
+  text-align: center;
+  background: rgba(6,6,6,0.5);
+  backdrop-filter: blur(8px);
+  transform: scale(1);
+  transform-origin: center;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.option:hover {
+  border-color: var(--line-yellow);
+  background: rgba(6,6,6,0.72);
+  box-shadow: 0 0 24px rgba(255,204,0,0.35);
+  transform: scale(1.05);
+}
+.option .label {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Shiny glare ring — ported from dontmovemovie.com's primary CTA */
+.btn-shine {
+  overflow: hidden;
+}
+.btn-shine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--glare-angle),
+    transparent 0deg,
+    transparent 305deg,
+    rgba(255,255,255,0.25) 332deg,
+    rgba(255,255,255,0.95) 344deg,
+    rgba(255,255,255,0.25) 356deg,
+    transparent 360deg);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 2;
+  animation: btn-glare-circle 3s linear infinite;
+}
+@keyframes btn-glare-circle {
+  to { --glare-angle: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-shine::before { animation: none; }
+}
+
+/* Content pages */
+main { padding: 2.5rem 1.5rem 4rem; max-width: 1200px; margin: 0 auto; }
+.eyebrow {
+  margin: 0 0 0.7rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.78rem;
+}
+h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing: 0.02em; }
+.copy { color: var(--muted); font-size: 1rem; max-width: 62ch; }
+
+/* About page: 3-column film layout */
+.film-grid {
+  display: grid;
+  grid-template-columns: 0.85fr 1.3fr 0.85fr;
+  gap: 2rem;
+  align-items: start;
+}
+.poster-col .poster {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  border-radius: 0;
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.poster-col .poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.logline {
+  font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+  line-height: 1.35;
+  margin: 0 0 1.4rem;
+  letter-spacing: 0.01em;
+}
+.synopsis p { color: var(--muted); font-size: 1rem; max-width: 60ch; }
+.crew-col h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.82rem;
+  color: var(--accent);
+  margin: 0 0 0.6rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+.crew-list { list-style: none; margin: 0 0 1.8rem; padding: 0; }
+.crew-list li { margin-bottom: 0.5rem; }
+.crew-list .role { display: block; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.crew-list .name { display: block; font-size: 0.98rem; }
+
+/* Screenings page */
+.screening-list {
+  display: flex;
+  flex-direction: column;
+  /* Slightly larger than the visual resting gap so a card growing 5% on
+     hover never closes the distance to its neighbor below the original gap. */
+  gap: 1.3rem;
+  margin-top: 2rem;
+}
+.screening {
+  position: relative;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.2rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  text-decoration: none;
+  transform: scale(1);
+  transform-origin: center;
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+.screening:hover {
+  border-color: var(--line-yellow);
+  background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  box-shadow: 0 0 24px rgba(255,204,0,0.35);
+  transform: scale(1.05);
+}
+.screening .date { font-size: 1.2rem; color: var(--accent); }
+/* Town is the most important bit of information here — 50% bigger than the
+   plain detail text, with the venue demoted below it as a smaller, muted line. */
+.town { margin: 0 0 0.2rem; font-size: 1.38rem; letter-spacing: 0.02em; }
+.venue { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.badge {
+  /* Absolutely positioned so it overlays the box without adding height. */
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line-yellow);
+  border-radius: 2px;
+  background: rgba(6,6,6,0.6);
+  white-space: nowrap;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.6rem;
+  color: var(--line-yellow);
+}
+.badge.inline {
+  position: static;
+  display: inline-block;
+  transform: none;
+  margin-bottom: 1rem;
+}
+
+/* Buttons */
+.button-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 2rem; }
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.3rem;
+  border: 1px solid var(--line-yellow);
+  border-radius: 2px;
+  text-decoration: none;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  background: transparent;
+  color: var(--text);
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+.button:hover {
+  background: rgba(255,204,0,0.12);
+  box-shadow: 0 0 24px rgba(255,204,0,0.3);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 3rem 1.5rem;
+  border-top: 1px solid var(--border);
+  margin-top: 2.5rem;
+}
+.footer-signup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  max-width: 480px;
+}
+.footer-signup-copy {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+.footer-mailing { display: flex; gap: 0; width: 100%; max-width: 260px; }
+.footer-mailing input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-right: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 0.7rem;
+  outline: none;
+}
+.footer-mailing input::placeholder { color: var(--muted); }
+.footer-mailing input:focus { border-color: var(--line-yellow); }
+.footer-mailing button {
+  background: transparent;
+  border: 1px solid var(--line-yellow);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+.footer-mailing button:hover {
+  background: rgba(255,204,0,0.12);
+  box-shadow: 0 0 24px rgba(255,204,0,0.3);
+}
+.footer-social { display: flex; gap: 1.6rem; align-items: center; }
+.social-icon {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.social-icon:hover { color: var(--line-yellow); transform: translateY(-3px); }
+.footer-copy {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244,239,228,0.35);
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .film-grid { grid-template-columns: 1fr; }
+  .poster-col .poster { max-width: 320px; margin: 0 auto; }
+  main { padding: 2rem 1rem 3rem; }
+  .site-header { padding: 1rem; }
+}
+@media (max-width: 600px) {
+  .screening { grid-template-columns: 1fr; }
+}
