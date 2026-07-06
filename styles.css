@@ -309,9 +309,8 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
 .badge {
   /* Absolutely positioned so it overlays the box without adding height. */
   position: absolute;
-  top: 50%;
+  top: 0.75rem;
   right: 0.75rem;
-  transform: translateY(-50%);
   padding: 0.3rem 0.6rem;
   border: 1px solid var(--line-yellow);
   border-radius: 2px;
