@@ -1,4 +1,14 @@
-document.addEventListener('DOMContentLoaded', () => {
+async function loadPartial(elementId, url) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const res = await fetch(url);
+  el.outerHTML = await res.text();
+}
+
+Promise.all([
+  loadPartial('header-placeholder', 'header.html'),
+  loadPartial('footer-placeholder', 'footer.html'),
+]).then(() => {
   const btn = document.getElementById('menu-toggle');
   const menu = document.getElementById('site-menu');
   if (!btn || !menu) return;
