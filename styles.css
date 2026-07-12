@@ -331,6 +331,14 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
 
 /* Buttons */
 .button-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 2rem; }
+.text-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--muted);
+  text-decoration: underline;
+  font-size: 0.85rem;
+}
+.text-link:hover { color: var(--text); }
 .button {
   display: inline-flex;
   align-items: center;
@@ -379,22 +387,7 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
   text-align: center;
   line-height: 1.7;
 }
-.footer-mailing { display: flex; gap: 0; width: 100%; max-width: 260px; }
-.footer-mailing input {
-  flex: 1;
-  min-width: 0;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-right: none;
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.05em;
-  padding: 0.6rem 0.7rem;
-  outline: none;
-}
-.footer-mailing input::placeholder { color: var(--muted); }
-.footer-mailing input:focus { border-color: var(--line-yellow); }
+.footer-mailing { display: flex; justify-content: center; }
 .footer-mailing button {
   background: transparent;
   border: 1px solid var(--line-yellow);
