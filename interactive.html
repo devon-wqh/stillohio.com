@@ -22,6 +22,11 @@
     #hud::after { content:''; position:absolute; inset:0; background: repeating-linear-gradient(0deg,rgba(0,0,0,0.025) 0px,rgba(0,0,0,0.025) 1px,transparent 1px,transparent 2px); }
     #controls-hint { position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%); color:rgba(180,150,90,0.35); font-size:0.6rem; letter-spacing:0.25em; text-transform:uppercase; pointer-events:none; z-index:20; transition:opacity 1s; white-space:nowrap; }
     .back-link { position: fixed; top: 1rem; left: 1rem; z-index: 110; color: #d7c49b; text-decoration: none; text-transform: uppercase; letter-spacing: 0.2em; font-size: 0.72rem; }
+    .joystick { position: fixed; bottom: 6vh; width: 116px; height: 116px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(192,168,112,0.35); display: none; z-index: 50; touch-action: none; pointer-events: auto; }
+    .joystick-left { left: 6vw; }
+    .joystick-right { right: 6vw; }
+    .joystick-knob { position: absolute; top: 50%; left: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(192,168,112,0.35); border: 1px solid rgba(224,200,150,0.5); pointer-events: none; }
+    .touch-device #hud.visible .joystick { display: block; }
   </style>
 </head>
 <body>
@@ -30,7 +35,10 @@
     <h1>Still Ohio</h1>
     <div class="prompt">click to enter</div>
   </div>
-  <div id="hud"></div>
+  <div id="hud">
+    <div id="joystick-drive" class="joystick joystick-left"><div class="joystick-knob"></div></div>
+    <div id="joystick-look" class="joystick joystick-right"><div class="joystick-knob"></div></div>
+  </div>
   <div id="controls-hint">↑↓ — drive · ←→ — steer · WASD — look</div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -240,13 +248,42 @@
     function buildChunkClean(cx, cz) { const g = new THREE.Group(); const wx = cx * CHUNK, wz = cz * CHUNK; const addPlane = (w, d, mat, x, z, y = 0.001) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); g.add(m); }; addPlane(CHUNK, CHUNK, M.ground, wx, wz, 0); addPlane(RW * 2, CHUNK, M.road, wx, wz, 0.004); addPlane(CHUNK, RW * 2, M.road, wx, wz, 0.004); const n = Math.floor(CHUNK / 10); for (let i = -n; i <= n; i++) { addPlane(0.14, 2.8, M.dash, wx, wz + i * 10, 0.01); addPlane(2.8, 0.14, M.dash, wx + i * 10, wz, 0.01); } const station = buildStation(); station.position.set(wx + RW + 1, 0, wz + RW + 1); g.add(station); addTrees(g, wx, wz, RW); addStreetlights(g, wx, wz); addStoplight(g, wx, wz); return g; }
     const chunks = new Map(); const RENDER_R = 2; function chunkKey(cx, cz) { return `${cx},${cz}`; } function updateChunks(px, pz) { const pcx = Math.round(px / CHUNK), pcz = Math.round(pz / CHUNK); for (let cx = pcx - RENDER_R; cx <= pcx + RENDER_R; cx++) for (let cz = pcz - RENDER_R; cz <= pcz + RENDER_R; cz++) { const k = chunkKey(cx, cz); if (!chunks.has(k)) { const c = buildChunkClean(cx, cz); scene.add(c); chunks.set(k, c); } } for (const [k, c] of chunks) { const [cx, cz] = k.split(',').map(Number); if (Math.abs(cx - pcx) > RENDER_R + 1 || Math.abs(cz - pcz) > RENDER_R + 1) { scene.remove(c); c.traverse(o => o.geometry?.dispose()); chunks.delete(k); } } }
     const keys = {}; document.addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); }); document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+    const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    if (isTouchDevice) {
+      document.body.classList.add('touch-device');
+      document.getElementById('controls-hint').textContent = 'left — drive · right — look';
+    }
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    function setupJoystick(zoneEl) {
+      const knobEl = zoneEl.querySelector('.joystick-knob');
+      const state = { x: 0, y: 0, touchId: null };
+      function apply(touch) {
+        const r = zoneEl.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const max = r.width / 2;
+        let dx = touch.clientX - cx, dy = touch.clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > max) { dx = dx / dist * max; dy = dy / dist * max; }
+        knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+        state.x = dx / max; state.y = dy / max;
+      }
+      function reset() { state.touchId = null; state.x = 0; state.y = 0; knobEl.style.transform = 'translate(0px, 0px)'; }
+      zoneEl.addEventListener('touchstart', e => { const t = e.changedTouches[0]; state.touchId = t.identifier; apply(t); e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchmove', e => { if (state.touchId === null) return; const t = [...e.changedTouches].find(t => t.identifier === state.touchId); if (!t) return; apply(t); e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchend', e => { if (state.touchId === null) return; if ([...e.changedTouches].some(t => t.identifier === state.touchId)) reset(); });
+      document.addEventListener('touchcancel', e => { if (state.touchId === null) return; if ([...e.changedTouches].some(t => t.identifier === state.touchId)) reset(); });
+      return state;
+    }
+    const joyDrive = setupJoystick(document.getElementById('joystick-drive'));
+    const joyLook = setupJoystick(document.getElementById('joystick-look'));
     let carHeading = Math.PI; let carSpeed = 0; let lookYaw = 0; let lookPitch = 0; const MAX_SPEED = 18, ACCEL = 7, BRAKE = 14, TURN = 1.6, LOOK_SPD = 0.8; let carX = 0, carZ = 0; let steerAngle = 0; const carBody = buildCarBody(); const [hl1, hl2] = carBody.userData.headlights; scene.add(hl1, hl1.target, hl2, hl2.target); function syncHeadlights() { const fwdX = -Math.sin(carHeading), fwdZ = -Math.cos(carHeading); const lftX = -Math.cos(carHeading), lftZ = Math.sin(carHeading); hl1.position.set(carX + fwdX * 3.1 + lftX * 0.52, 0.76, carZ + fwdZ * 3.1 + lftZ * 0.52); hl2.position.set(carX + fwdX * 3.1 - lftX * 0.52, 0.76, carZ + fwdZ * 3.1 - lftZ * 0.52); const tgtX = carX + fwdX * 200, tgtZ = carZ + fwdZ * 200; hl1.target.position.set(tgtX, -1.8, tgtZ); hl2.target.position.set(tgtX, -1.8, tgtZ); }
     syncHeadlights();
     const startScreen = document.getElementById('start-screen'); const hud = document.getElementById('hud'); const hint = document.getElementById('controls-hint'); let started = false, hintTimer = 0;
     startScreen.addEventListener('click', () => { started = true; startScreen.style.display = 'none'; hud.classList.add('visible'); scene.add(carBody); updateChunks(carX, carZ); });
     updateChunks(0, 0);
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (started) { if (keys['ArrowLeft']) carHeading += TURN * dt; if (keys['ArrowRight']) carHeading -= TURN * dt; if (keys['ArrowUp']) carSpeed = Math.min(carSpeed + ACCEL * dt, MAX_SPEED); else if (keys['ArrowDown']) carSpeed = Math.max(carSpeed - BRAKE * dt, -MAX_SPEED * 0.3); else { carSpeed *= (1 - 3.5 * dt); if (Math.abs(carSpeed) < 0.05) carSpeed = 0; } if (keys['KeyA']) lookYaw += LOOK_SPD * dt; if (keys['KeyD']) lookYaw -= LOOK_SPD * dt; if (keys['KeyW']) lookPitch = Math.min(0.45, lookPitch + LOOK_SPD * dt); if (keys['KeyS']) lookPitch = Math.max(-0.55, lookPitch - LOOK_SPD * dt); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; const steerTarget = (keys['ArrowLeft'] ? 1 : keys['ArrowRight'] ? -1 : 0) * Math.PI * 0.45; steerAngle += (steerTarget - steerAngle) * 9 * dt; const sw = carBody.userData.steeringWheel; if (sw) sw.rotation.z = steerAngle; const leftX = -Math.cos(carHeading); const leftZ = Math.sin(carHeading); camera.position.set(carX + leftX * 0.30, 1.35, carZ + leftZ * 0.30); camera.rotation.order = 'YXZ'; camera.rotation.y = carHeading + lookYaw; camera.rotation.x = lookPitch; carBody.position.set(carX, 0, carZ); carBody.rotation.y = carHeading; syncHeadlights(); const mRT = carBody.userData.mirrorRT; const mCam = carBody.userData.mirrorCam; if (mRT && mCam) { mCam.position.copy(camera.position); mCam.rotation.order = 'YXZ'; mCam.rotation.y = carHeading + Math.PI; mCam.rotation.x = 0; renderer.setRenderTarget(mRT); renderer.render(scene, mCam); renderer.setRenderTarget(null); } hintTimer += dt; if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); } renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (started) { const steerInput = clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); carHeading += TURN * dt * steerInput; if (throttleInput > 0.01) carSpeed = Math.min(carSpeed + ACCEL * throttleInput * dt, MAX_SPEED); else if (throttleInput < -0.01) carSpeed = Math.max(carSpeed + BRAKE * throttleInput * dt, -MAX_SPEED * 0.3); else { carSpeed *= (1 - 3.5 * dt); if (Math.abs(carSpeed) < 0.05) carSpeed = 0; } lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; const steerTarget = steerInput * Math.PI * 0.45; steerAngle += (steerTarget - steerAngle) * 9 * dt; const sw = carBody.userData.steeringWheel; if (sw) sw.rotation.z = steerAngle; const leftX = -Math.cos(carHeading); const leftZ = Math.sin(carHeading); camera.position.set(carX + leftX * 0.30, 1.35, carZ + leftZ * 0.30); camera.rotation.order = 'YXZ'; camera.rotation.y = carHeading + lookYaw; camera.rotation.x = lookPitch; carBody.position.set(carX, 0, carZ); carBody.rotation.y = carHeading; syncHeadlights(); const mRT = carBody.userData.mirrorRT; const mCam = carBody.userData.mirrorCam; if (mRT && mCam) { mCam.position.copy(camera.position); mCam.rotation.order = 'YXZ'; mCam.rotation.y = carHeading + Math.PI; mCam.rotation.x = 0; renderer.setRenderTarget(mRT); renderer.render(scene, mCam); renderer.setRenderTarget(null); } hintTimer += dt; if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); } renderer.render(scene, camera); }
     requestAnimationFrame(loop); window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
   })();
   </script>
