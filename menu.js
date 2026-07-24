@@ -29,6 +29,13 @@ Promise.all([
   const mailInput = document.getElementById('footer-email-input');
   const mailStatus = document.getElementById('footer-mailing-status');
   if (mailForm && mailInput) {
+    const closeMailForm = () => {
+      mailForm.classList.remove('revealed');
+      mailInput.setAttribute('aria-hidden', 'true');
+      mailInput.setAttribute('tabindex', '-1');
+      mailInput.blur();
+    };
+
     mailForm.addEventListener('submit', async e => {
       e.preventDefault();
 
@@ -55,8 +62,15 @@ Promise.all([
         if (!res.ok) throw new Error('request failed');
         mailStatus.textContent = "Thanks — we'll keep you posted.";
         mailForm.reset();
+        setTimeout(closeMailForm, 1600);
       } catch {
         mailStatus.textContent = 'Something went wrong. Please try again.';
+      }
+    });
+
+    document.addEventListener('click', e => {
+      if (mailForm.classList.contains('revealed') && !mailForm.contains(e.target)) {
+        closeMailForm();
       }
     });
   }
