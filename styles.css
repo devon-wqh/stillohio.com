@@ -347,6 +347,16 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
   border: 1px solid var(--border);
   background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
 }
+.photo-item {
+  display: block;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+.photo-item:hover { border-color: var(--line-yellow); transform: scale(1.02); }
+.photo-item img { width: 100%; height: 100%; object-fit: cover; }
 
 /* Buttons */
 .button-row { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 2rem; }

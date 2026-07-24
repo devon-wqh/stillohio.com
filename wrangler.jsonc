@@ -16,6 +16,14 @@
       "id": "9e397fd230b94abfa51b65de502cda65"
     }
   ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "still-ohio-db",
+      "database_id": "f6264c3c-77e2-4fcb-9341-a167bdccc13f",
+      "migrations_dir": "migrations"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]

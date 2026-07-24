@@ -1,0 +1,8 @@
+# Old static screening pages -> dynamic template
+/screening-1.html /screening?id=1 301
+/screening-2.html /screening?id=2 301
+/screening-3.html /screening?id=3 301
+/screening-4.html /screening?id=4 301
+/screening-5.html /screening?id=5 301
+/screening-1-photos.html /photos?id=1 301
+/screening-2-photos.html /photos?id=2 301

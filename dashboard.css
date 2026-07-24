@@ -1,0 +1,181 @@
+/* Dashboard — mobile-first, reuses the site's palette from styles.css */
+body.dash { overflow: auto; }
+
+/* [hidden] must beat class-level display rules (.button, .modal-overlay, etc.) */
+[hidden] { display: none !important; }
+
+.dash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(6,6,6,0.92);
+  backdrop-filter: blur(8px);
+  z-index: 20;
+}
+.dash-brand { display: flex; align-items: center; gap: 0.7rem; }
+.dash-brand img { height: 1.8rem; width: auto; }
+.dash-brand span {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dash-user { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); text-align: right; }
+
+.dash-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 3.4rem;
+  background: rgba(6,6,6,0.92);
+  backdrop-filter: blur(8px);
+  z-index: 19;
+  -webkit-overflow-scrolling: touch;
+}
+.dash-tab {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.dash-tab.active { border-color: var(--line-yellow); color: var(--text); background: rgba(255,204,0,0.08); }
+
+.dash-main { padding: 1.2rem 1rem 4rem; max-width: 1100px; margin: 0 auto; }
+.dash-section { display: none; }
+.dash-section.active { display: block; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.section-head h2 { margin: 0; font-size: 1.3rem; }
+
+/* Overview stats */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.9rem;
+}
+.stat-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  padding: 1.1rem 1rem;
+}
+.stat-card .stat-value { font-size: 1.8rem; color: var(--accent); line-height: 1.1; }
+.stat-card .stat-label {
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+/* Admin screening rows */
+.admin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  margin-bottom: 0.7rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.admin-row:hover { border-color: var(--line-yellow); }
+.admin-row .ar-main { min-width: 0; }
+.admin-row .ar-date { color: var(--accent); font-size: 1.05rem; }
+.admin-row .ar-town { font-size: 1.1rem; }
+.admin-row .ar-meta { font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 0.3rem; }
+.admin-row .ar-tag {
+  font-family: var(--mono); font-size: 0.55rem; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 0.2rem 0.5rem; border: 1px solid var(--border); white-space: nowrap;
+}
+.ar-tag.upcoming { color: var(--line-yellow); border-color: var(--line-yellow); }
+.ar-tag.past { color: var(--muted); }
+
+/* Fields / forms */
+.field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.9rem; }
+.field > span {
+  font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.field > span b { color: var(--line-yellow); }
+.field input, .field select, .field textarea {
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  color: var(--text);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--line-yellow); }
+.hint { font-family: var(--mono); font-size: 0.58rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+.field-wide { grid-column: 1 / -1; }
+.form-actions { display: flex; align-items: center; gap: 0.8rem; margin-top: 0.6rem; flex-wrap: wrap; }
+.button-danger { border-color: #b5453a; color: #e88; }
+.button-danger:hover { background: rgba(181,69,58,0.15); box-shadow: 0 0 20px rgba(181,69,58,0.25); }
+.modal-wide { max-width: 640px; }
+/* Tall edit form must stay reachable on short/phone screens: let the overlay
+   scroll and pin the modal near the top rather than force-centering it. */
+.dash .modal-overlay { align-items: flex-start; overflow-y: auto; }
+.dash .modal { margin: 1.2rem auto; }
+
+/* Photo admin */
+.photo-admin-add, .photo-admin-upload {
+  border: 1px solid var(--border); padding: 1rem; margin-bottom: 1rem;
+}
+.photo-admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.8rem; }
+.photo-admin-item { position: relative; border: 1px solid var(--border); aspect-ratio: 4/3; overflow: hidden; }
+.photo-admin-item img { width: 100%; height: 100%; object-fit: cover; }
+.photo-admin-item button {
+  position: absolute; top: 0.3rem; right: 0.3rem;
+  background: rgba(6,6,6,0.8); border: 1px solid var(--border); color: #e88;
+  font-size: 0.9rem; line-height: 1; width: 1.6rem; height: 1.6rem; cursor: pointer;
+}
+
+/* Email table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); }
+.dash-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+.dash-table th, .dash-table td { text-align: left; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.dash-table th {
+  font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); background: rgba(255,255,255,0.02);
+}
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table .tag-event { color: var(--line-yellow); }
+
+/* Map */
+#dash-map { height: 520px; border: 1px solid var(--border); }
+.leaflet-container { background: #0c0c0c; font-family: var(--mono); }
+
+.dash-empty { color: var(--muted); font-family: var(--mono); font-size: 0.72rem; padding: 1.5rem 0; }
+
+@media (max-width: 560px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .dash-brand span { display: none; }
+  #dash-map { height: 60vh; }
+}
