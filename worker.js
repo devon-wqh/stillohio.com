@@ -299,28 +299,30 @@ export default {
       return servePhoto(env, path.slice('/photos/'.length));
     }
 
-    // Admin API (Access-gated in production; localhost bypass for dev)
-    if (path.startsWith('/api/admin/')) {
+    // Admin API — lives under /dashboard so a single Cloudflare Access
+    // application on the /dashboard path gates both the page and its API.
+    // (Access-gated in production; localhost bypass for dev.)
+    if (path.startsWith('/dashboard/api/')) {
       const who = requireAdmin(request, url);
       if (!who) return json({ ok: false, error: 'Unauthorized.' }, 403);
 
-      if (path === '/api/admin/summary' && method === 'GET') return adminSummary(env);
-      if (path === '/api/admin/signups' && method === 'GET') return listSignups(env);
+      if (path === '/dashboard/api/summary' && method === 'GET') return adminSummary(env);
+      if (path === '/dashboard/api/signups' && method === 'GET') return listSignups(env);
 
-      if (path === '/api/admin/screenings' && method === 'GET') return listScreeningsAdmin(env);
-      if (path === '/api/admin/screenings' && method === 'POST') return createScreening(request, env);
-      const adminScr = path.match(/^\/api\/admin\/screenings\/(\d+)$/);
+      if (path === '/dashboard/api/screenings' && method === 'GET') return listScreeningsAdmin(env);
+      if (path === '/dashboard/api/screenings' && method === 'POST') return createScreening(request, env);
+      const adminScr = path.match(/^\/dashboard\/api\/screenings\/(\d+)$/);
       if (adminScr && method === 'PUT') return updateScreening(request, env, Number(adminScr[1]));
       if (adminScr && method === 'DELETE') return deleteScreening(env, Number(adminScr[1]));
 
-      if (path === '/api/admin/photos' && method === 'GET') {
+      if (path === '/dashboard/api/photos' && method === 'GET') {
         return listPhotos(env, Number(url.searchParams.get('screening_id')));
       }
-      if (path === '/api/admin/photos' && method === 'POST') return addPhoto(request, env);
-      const adminPhoto = path.match(/^\/api\/admin\/photos\/(\d+)$/);
+      if (path === '/dashboard/api/photos' && method === 'POST') return addPhoto(request, env);
+      const adminPhoto = path.match(/^\/dashboard\/api\/photos\/(\d+)$/);
       if (adminPhoto && method === 'DELETE') return deletePhoto(env, Number(adminPhoto[1]));
 
-      if (path === '/api/admin/upload' && method === 'POST') return uploadPhoto(request, env, url);
+      if (path === '/dashboard/api/upload' && method === 'POST') return uploadPhoto(request, env, url);
 
       return json({ ok: false, error: 'Not found.' }, 404);
     }

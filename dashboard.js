@@ -34,7 +34,7 @@ $('#dash-tabs').addEventListener('click', e => {
 async function loadOverview() {
   const grid = $('#stat-grid');
   try {
-    const { summary } = await api('/api/admin/summary');
+    const { summary } = await api('/dashboard/api/summary');
     const cards = [
       { v: summary.total_screenings, l: 'Screenings total' },
       { v: summary.upcoming_count, l: 'Upcoming' },
@@ -58,7 +58,7 @@ let screeningsCache = [];
 async function loadScreeningsAdmin() {
   const list = $('#screenings-admin-list');
   try {
-    const { screenings } = await api('/api/admin/screenings');
+    const { screenings } = await api('/dashboard/api/screenings');
     screeningsCache = screenings;
     if (!screenings.length) { list.innerHTML = '<p class="dash-empty">No screenings yet.</p>'; return; }
     list.innerHTML = screenings.map(s => {
@@ -126,11 +126,11 @@ scrForm.addEventListener('submit', async e => {
   status.textContent = 'Saving…';
   try {
     if (id) {
-      await api(`/api/admin/screenings/${id}`, {
+      await api(`/dashboard/api/screenings/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
     } else {
-      await api('/api/admin/screenings', {
+      await api('/dashboard/api/screenings', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       });
     }
@@ -146,7 +146,7 @@ $('#delete-screening-btn').addEventListener('click', async () => {
   const id = scrForm.id.value;
   if (!id || !confirm('Delete this screening and its photos? This cannot be undone.')) return;
   try {
-    await api(`/api/admin/screenings/${id}`, { method: 'DELETE' });
+    await api(`/dashboard/api/screenings/${id}`, { method: 'DELETE' });
     closeScreeningModal();
     await Promise.all([loadScreeningsAdmin(), loadOverview(), populatePhotoSelect()]);
     refreshMapMarkers();
@@ -161,7 +161,7 @@ async function populatePhotoSelect() {
   const sel = $('#photo-screening-select');
   const prev = sel.value;
   if (!screeningsCache.length) {
-    try { screeningsCache = (await api('/api/admin/screenings')).screenings; } catch {}
+    try { screeningsCache = (await api('/dashboard/api/screenings')).screenings; } catch {}
   }
   sel.innerHTML = screeningsCache.map(s =>
     `<option value="${s.id}">${esc(s.display_date)} — ${esc(s.town)}</option>`
@@ -177,7 +177,7 @@ async function loadPhotoAdmin() {
   const id = sel.value;
   if (!id) { grid.innerHTML = ''; return; }
   try {
-    const { photos } = await api(`/api/admin/photos?screening_id=${id}`);
+    const { photos } = await api(`/dashboard/api/photos?screening_id=${id}`);
     if (!photos.length) { grid.innerHTML = '<p class="dash-empty">No photos yet for this screening.</p>'; return; }
     grid.innerHTML = photos.map(p =>
       `<div class="photo-admin-item"><img src="${esc(p.url)}" alt="${esc(p.caption || '')}">
@@ -190,7 +190,7 @@ async function loadPhotoAdmin() {
 $('#photo-admin-list').addEventListener('click', async e => {
   const btn = e.target.closest('button[data-id]');
   if (!btn || !confirm('Remove this photo?')) return;
-  try { await api(`/api/admin/photos/${btn.dataset.id}`, { method: 'DELETE' }); loadPhotoAdmin(); }
+  try { await api(`/dashboard/api/photos/${btn.dataset.id}`, { method: 'DELETE' }); loadPhotoAdmin(); }
   catch (err) { alert(err.message); }
 });
 $('#add-photo-link-btn').addEventListener('click', async () => {
@@ -199,7 +199,7 @@ $('#add-photo-link-btn').addEventListener('click', async () => {
   const caption = $('#photo-caption-input').value.trim();
   if (!screeningId || !url) { alert('Pick a screening and enter an image URL.'); return; }
   try {
-    await api('/api/admin/photos', {
+    await api('/dashboard/api/photos', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ screening_id: Number(screeningId), url, caption }),
     });
@@ -220,8 +220,8 @@ $('#upload-photo-btn').addEventListener('click', async () => {
   try {
     const fd = new FormData();
     fd.append('file', file);
-    const { url } = await api('/api/admin/upload', { method: 'POST', body: fd });
-    await api('/api/admin/photos', {
+    const { url } = await api('/dashboard/api/upload', { method: 'POST', body: fd });
+    await api('/dashboard/api/photos', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ screening_id: Number(screeningId), url }),
     });
@@ -237,7 +237,7 @@ let signupsCache = [];
 async function loadEmails() {
   const table = $('#emails-table');
   try {
-    const { signups } = await api('/api/admin/signups');
+    const { signups } = await api('/dashboard/api/signups');
     signupsCache = signups;
     if (!signups.length) { table.innerHTML = '<tr><td class="dash-empty">No signups yet.</td></tr>'; return; }
     const head = `<tr><th>Date</th><th>Type</th><th>Name</th><th>Email</th><th>Zip</th><th>Phone</th><th>Event</th></tr>`;
@@ -285,7 +285,7 @@ function initMap() {
 async function refreshMapMarkers() {
   if (!mapInited || !markerLayer) return;
   if (!screeningsCache.length) {
-    try { screeningsCache = (await api('/api/admin/screenings')).screenings; } catch { return; }
+    try { screeningsCache = (await api('/dashboard/api/screenings')).screenings; } catch { return; }
   }
   markerLayer.clearLayers();
   const pts = [];
