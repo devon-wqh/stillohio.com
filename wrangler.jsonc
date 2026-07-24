@@ -2,12 +2,20 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "still-ohio",
   "compatibility_date": "2026-07-12",
+  "main": "worker.js",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "."
+    "directory": ".",
+    "binding": "ASSETS"
   },
+  "kv_namespaces": [
+    {
+      "binding": "SIGNUPS",
+      "id": "9e397fd230b94abfa51b65de502cda65"
+    }
+  ],
   "compatibility_flags": [
     "nodejs_compat"
   ]

@@ -24,4 +24,40 @@ Promise.all([
       btn.setAttribute('aria-expanded', 'false');
     });
   });
+
+  const mailForm = document.getElementById('footer-mailing-form');
+  const mailInput = document.getElementById('footer-email-input');
+  const mailStatus = document.getElementById('footer-mailing-status');
+  if (mailForm && mailInput) {
+    mailForm.addEventListener('submit', async e => {
+      e.preventDefault();
+
+      if (!mailForm.classList.contains('revealed')) {
+        mailForm.classList.add('revealed');
+        mailInput.removeAttribute('aria-hidden');
+        mailInput.removeAttribute('tabindex');
+        mailInput.focus();
+        return;
+      }
+
+      if (!mailInput.value || !mailInput.checkValidity()) {
+        mailInput.reportValidity();
+        return;
+      }
+
+      mailStatus.textContent = 'Submitting…';
+      try {
+        const res = await fetch('/api/updates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: 'footer', email: mailInput.value }),
+        });
+        if (!res.ok) throw new Error('request failed');
+        mailStatus.textContent = "Thanks — we'll keep you posted.";
+        mailForm.reset();
+      } catch {
+        mailStatus.textContent = 'Something went wrong. Please try again.';
+      }
+    });
+  }
 });
