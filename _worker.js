@@ -25,14 +25,42 @@ function publicScreening(row) {
   };
 }
 
-// Cloudflare Access injects this header for authenticated users and strips any
-// client-supplied copy, so on Access-gated routes its presence means the caller
-// passed the Access login. Localhost has no Access in front, so allow dev there.
-function requireAdmin(request, url) {
-  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-    return request.headers.get('Cf-Access-Authenticated-User-Email') || 'dev@localhost';
+// Constant-time string comparison so auth failures don't leak credential
+// contents through response timing.
+function safeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
+// HTTP Basic Auth for the dashboard. Cloudflare Access can't gate this project
+// (DNS is at Wix, so www isn't a Cloudflare zone, and pages.dev is a shared
+// Cloudflare domain Access won't enforce on), so auth lives here. Credentials
+// come from Pages secrets; returns false — denying access — whenever the
+// secrets are unset or the supplied credentials don't match.
+function checkDashboardAuth(request, env) {
+  const expectedUser = env.DASHBOARD_USER;
+  const expectedPass = env.DASHBOARD_PASS;
+  if (!expectedUser || !expectedPass) return false;
+  const header = request.headers.get('Authorization') || '';
+  const [scheme, encoded] = header.split(' ');
+  if (scheme !== 'Basic' || !encoded) return false;
+  let decoded;
+  try {
+    decoded = atob(encoded);
+  } catch {
+    return false;
   }
-  return request.headers.get('Cf-Access-Authenticated-User-Email') || null;
+  const idx = decoded.indexOf(':');
+  if (idx === -1) return false;
+  const user = decoded.slice(0, idx);
+  const pass = decoded.slice(idx + 1);
+  return safeEqual(user, expectedUser) && safeEqual(pass, expectedPass);
 }
 
 // ---- Signups (public) --------------------------------------------------------
@@ -279,21 +307,19 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
-    // The /dashboard admin surface (page + API) is protected by a Cloudflare
-    // Access application on the stillohio.pages.dev hostname. Our public domain
-    // (www.stillohio.com) reaches Pages through an external CNAME, so its zone
-    // lives at Wix, not Cloudflare — Access cannot gate it. We therefore expose
-    // the dashboard ONLY on the Access-protected pages.dev host (and localhost
-    // for dev) and return 404 for it on every other hostname.
-    const isAdminHost =
-      url.hostname === 'stillohio.pages.dev' ||
-      url.hostname === 'localhost' ||
-      url.hostname === '127.0.0.1';
-    if (
-      !isAdminHost &&
-      (path === '/dashboard' || path === '/dashboard.html' || path.startsWith('/dashboard/'))
-    ) {
-      return new Response('Not found', { status: 404 });
+    // Password-gate the entire /dashboard surface (admin page + admin API).
+    // Fails closed: no/invalid credentials -> 401. (Static assets like
+    // /dashboard.css and /dashboard.js sit at the root and are not sensitive,
+    // so they load without a challenge.)
+    if (path === '/dashboard' || path === '/dashboard.html' || path.startsWith('/dashboard/')) {
+      if (!checkDashboardAuth(request, env)) {
+        return new Response('Authentication required.', {
+          status: 401,
+          headers: {
+            'WWW-Authenticate': 'Basic realm="Still Ohio Dashboard", charset="UTF-8"',
+          },
+        });
+      }
     }
 
     // Public signup
@@ -316,13 +342,9 @@ export default {
       return servePhoto(env, path.slice('/photos/'.length));
     }
 
-    // Admin API — lives under /dashboard so a single Cloudflare Access
-    // application on the /dashboard path gates both the page and its API.
-    // (Access-gated in production; localhost bypass for dev.)
+    // Admin API — lives under /dashboard so the Basic Auth gate above covers
+    // both the page and its API. Requests reaching here are authenticated.
     if (path.startsWith('/dashboard/api/')) {
-      const who = requireAdmin(request, url);
-      if (!who) return json({ ok: false, error: 'Unauthorized.' }, 403);
-
       if (path === '/dashboard/api/summary' && method === 'GET') return adminSummary(env);
       if (path === '/dashboard/api/signups' && method === 'GET') return listSignups(env);
 
