@@ -4,11 +4,17 @@ function esc(s) {
   ));
 }
 
+// A date range when display_date_end is set (exact day still unknown),
+// otherwise just the single date label.
+function dateLabel(s) {
+  return s.display_date_end ? `${s.display_date} – ${s.display_date_end}` : s.display_date;
+}
+
 function tileInner(s) {
   const badge = s.badge ? `<span class="badge">${esc(s.badge)}</span>` : '';
   const venue = s.venue ? `<p class="venue">${esc(s.venue)}</p>` : '';
   return `${badge}
-    <div class="date">${esc(s.display_date)}</div>
+    <div class="date">${esc(dateLabel(s))}</div>
     <div class="details">
       <h3 class="town">${esc(s.town)}</h3>
       ${venue}

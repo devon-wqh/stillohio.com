@@ -65,12 +65,13 @@ async function loadScreening() {
   if (!data.ok) { titleEl.textContent = 'Screening not found'; return; }
 
   const s = data.screening;
-  document.title = `${s.display_date} · ${s.town} — Still Ohio`;
+  const dateLabel = s.display_date_end ? `${s.display_date} – ${s.display_date_end}` : s.display_date;
+  document.title = `${dateLabel} · ${s.town} — Still Ohio`;
 
   const badgeEl = document.getElementById('s-badge');
   if (s.badge) { badgeEl.textContent = s.badge; badgeEl.hidden = false; }
 
-  titleEl.textContent = s.time ? `${s.display_date} · ${s.time}` : s.display_date;
+  titleEl.textContent = s.time ? `${dateLabel} · ${s.time}` : dateLabel;
   document.getElementById('s-town').textContent = s.town;
   document.getElementById('s-venue').textContent = s.venue || '';
 

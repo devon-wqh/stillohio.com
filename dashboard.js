@@ -9,6 +9,10 @@ function esc(s) {
 function money(cents) {
   return '$' + ((cents || 0) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+// Human date label: a range when display_date_end is set, otherwise the single date.
+function dateLabel(s) {
+  return s.display_date_end ? `${s.display_date} – ${s.display_date_end}` : s.display_date;
+}
 async function api(path, opts) {
   const res = await fetch(path, opts);
   const data = await res.json().catch(() => ({}));
@@ -66,7 +70,7 @@ async function loadScreeningsAdmin() {
         ? ` · ${s.tickets_sold || 0} sold · ${money(s.gross_cents)}` : '';
       return `<div class="admin-row" data-id="${s.id}">
         <div class="ar-main">
-          <div class="ar-date">${esc(s.display_date)}</div>
+          <div class="ar-date">${esc(dateLabel(s))}</div>
           <div class="ar-town">${esc(s.town)}</div>
           <div class="ar-meta">${esc(s.venue || '')}${sales}</div>
         </div>
@@ -95,6 +99,7 @@ function openScreeningModal(s) {
   scrForm.id.value = s ? s.id : '';
   if (s) {
     scrForm.display_date.value = s.display_date || '';
+    scrForm.display_date_end.value = s.display_date_end || '';
     scrForm.sort_date.value = s.sort_date || '';
     scrForm.time.value = s.time || '';
     scrForm.town.value = s.town || '';

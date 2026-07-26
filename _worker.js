@@ -12,6 +12,7 @@ function publicScreening(row) {
   return {
     id: row.id,
     display_date: row.display_date,
+    display_date_end: row.display_date_end,
     sort_date: row.sort_date,
     time: row.time,
     town: row.town,
@@ -125,6 +126,7 @@ async function getScreeningPublic(env, id) {
 function readScreeningInput(body) {
   const s = {
     display_date: (body.display_date || '').trim(),
+    display_date_end: (body.display_date_end || '').trim() || null,
     sort_date: (body.sort_date || '').trim() || null,
     time: (body.time || '').trim() || null,
     town: (body.town || '').trim(),
@@ -149,10 +151,10 @@ async function createScreening(request, env) {
   }
   const res = await env.DB.prepare(
     `INSERT INTO screenings
-      (display_date, sort_date, time, town, venue, badge, lat, lng, cta_type, ticket_url, status, tickets_sold, gross_cents)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (display_date, display_date_end, sort_date, time, town, venue, badge, lat, lng, cta_type, ticket_url, status, tickets_sold, gross_cents)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    s.display_date, s.sort_date, s.time, s.town, s.venue, s.badge,
+    s.display_date, s.display_date_end, s.sort_date, s.time, s.town, s.venue, s.badge,
     s.lat, s.lng, s.cta_type, s.ticket_url, s.status, s.tickets_sold, s.gross_cents
   ).run();
   return json({ ok: true, id: res.meta.last_row_id });
@@ -166,11 +168,11 @@ async function updateScreening(request, env, id) {
   }
   await env.DB.prepare(
     `UPDATE screenings SET
-      display_date = ?, sort_date = ?, time = ?, town = ?, venue = ?, badge = ?,
+      display_date = ?, display_date_end = ?, sort_date = ?, time = ?, town = ?, venue = ?, badge = ?,
       lat = ?, lng = ?, cta_type = ?, ticket_url = ?, status = ?, tickets_sold = ?, gross_cents = ?
      WHERE id = ?`
   ).bind(
-    s.display_date, s.sort_date, s.time, s.town, s.venue, s.badge,
+    s.display_date, s.display_date_end, s.sort_date, s.time, s.town, s.venue, s.badge,
     s.lat, s.lng, s.cta_type, s.ticket_url, s.status, s.tickets_sold, s.gross_cents, id
   ).run();
   return json({ ok: true });
