@@ -1,15 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "still-ohio",
+  "name": "stillohio",
   "compatibility_date": "2026-07-12",
-  "main": "worker.js",
-  "observability": {
-    "enabled": true
-  },
-  "assets": {
-    "directory": ".",
-    "binding": "ASSETS"
-  },
+  "compatibility_flags": ["nodejs_compat"],
+  // Cloudflare Pages project. The site is served on www.stillohio.com via an
+  // external CNAME (DNS stays at Wix), which only Pages supports. The backend
+  // runs from _worker.js (Pages "Advanced Mode"); static files serve normally.
+  "pages_build_output_dir": ".",
   "kv_namespaces": [
     {
       "binding": "SIGNUPS",
@@ -20,11 +17,7 @@
     {
       "binding": "DB",
       "database_name": "still-ohio-db",
-      "database_id": "f6264c3c-77e2-4fcb-9341-a167bdccc13f",
-      "migrations_dir": "migrations"
+      "database_id": "f6264c3c-77e2-4fcb-9341-a167bdccc13f"
     }
-  ],
-  "compatibility_flags": [
-    "nodejs_compat"
   ]
 }
