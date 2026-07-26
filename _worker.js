@@ -279,6 +279,23 @@ export default {
     const path = url.pathname;
     const method = request.method;
 
+    // The /dashboard admin surface (page + API) is protected by a Cloudflare
+    // Access application on the stillohio.pages.dev hostname. Our public domain
+    // (www.stillohio.com) reaches Pages through an external CNAME, so its zone
+    // lives at Wix, not Cloudflare — Access cannot gate it. We therefore expose
+    // the dashboard ONLY on the Access-protected pages.dev host (and localhost
+    // for dev) and return 404 for it on every other hostname.
+    const isAdminHost =
+      url.hostname === 'stillohio.pages.dev' ||
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1';
+    if (
+      !isAdminHost &&
+      (path === '/dashboard' || path === '/dashboard.html' || path.startsWith('/dashboard/'))
+    ) {
+      return new Response('Not found', { status: 404 });
+    }
+
     // Public signup
     if (path === '/api/updates') {
       if (method !== 'POST') return json({ ok: false, error: 'Method not allowed.' }, 405);
