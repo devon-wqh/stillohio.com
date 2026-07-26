@@ -11,12 +11,18 @@ function dateLabel(s) {
 }
 
 function tileInner(s) {
+  // Event title is the headline; when it's absent (older records) the town takes
+  // its place. When a title is present the town shows as a line beneath it, even
+  // if the two overlap.
+  const heading = s.title || s.town;
   const badge = s.badge ? `<span class="badge">${esc(s.badge)}</span>` : '';
+  const townLine = s.title ? `<p class="venue">${esc(s.town)}</p>` : '';
   const venue = s.venue ? `<p class="venue">${esc(s.venue)}</p>` : '';
   return `${badge}
     <div class="date">${esc(dateLabel(s))}</div>
     <div class="details">
-      <h3 class="town">${esc(s.town)}</h3>
+      <h3 class="town">${esc(heading)}</h3>
+      ${townLine}
       ${venue}
     </div>`;
 }

@@ -97,16 +97,18 @@
       <form class="modal-form" id="screening-form">
         <input type="hidden" name="id" />
         <div class="form-grid">
-          <label class="field"><span>Date label <b>*</b></span>
+          <label class="field field-wide"><span>Event title</span>
+            <input type="text" name="title" placeholder="Maine International Film Festival"></label>
+          <label class="field"><span>Date <b>*</b></span>
             <input type="text" name="display_date" placeholder="September 11, 2026" required></label>
           <label class="field"><span>End date (optional — for a range)</span>
             <input type="text" name="display_date_end" placeholder="September 18, 2026"></label>
-          <label class="field"><span>Sort date (for order/map)</span>
-            <input type="date" name="sort_date"></label>
           <label class="field"><span>Time</span>
             <input type="text" name="time" placeholder="7:00 PM"></label>
           <label class="field"><span>Town <b>*</b></span>
             <input type="text" name="town" placeholder="Columbus, Ohio" required></label>
+          <label class="field"><span>Sort date (for order/map)</span>
+            <input type="date" name="sort_date"></label>
           <label class="field field-wide"><span>Venue / detail line</span>
             <input type="text" name="venue" placeholder="Venue name · Festival"></label>
           <label class="field"><span>Badge</span>

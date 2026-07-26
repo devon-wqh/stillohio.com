@@ -306,6 +306,8 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
    plain detail text, with the venue demoted below it as a smaller, muted line. */
 .town { margin: 0 0 0.2rem; font-size: 1.38rem; letter-spacing: 0.02em; }
 .venue { margin: 0; color: var(--muted); font-size: 0.92rem; }
+/* Date/time line on the individual screening page (under the event title). */
+#s-date { margin: 0 0 0.5rem; font-size: 1.2rem; color: var(--accent); }
 .badge {
   /* Absolutely positioned so it overlays the box without adding height. */
   position: absolute;

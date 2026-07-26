@@ -66,13 +66,17 @@ async function loadScreening() {
 
   const s = data.screening;
   const dateLabel = s.display_date_end ? `${s.display_date} – ${s.display_date_end}` : s.display_date;
-  document.title = `${dateLabel} · ${s.town} — Still Ohio`;
+  const heading = s.title || s.town;
+  document.title = `${heading} — Still Ohio`;
 
   const badgeEl = document.getElementById('s-badge');
   if (s.badge) { badgeEl.textContent = s.badge; badgeEl.hidden = false; }
 
-  titleEl.textContent = s.time ? `${dateLabel} · ${s.time}` : dateLabel;
-  document.getElementById('s-town').textContent = s.town;
+  titleEl.textContent = heading;
+  document.getElementById('s-date').textContent = s.time ? `${dateLabel} · ${s.time}` : dateLabel;
+  // Town shows as a sub-line only when a distinct title is the heading.
+  const townEl = document.getElementById('s-town');
+  if (s.title) { townEl.textContent = s.town; townEl.hidden = false; }
   document.getElementById('s-venue').textContent = s.venue || '';
 
   const cta = document.getElementById('s-cta');

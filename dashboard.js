@@ -67,12 +67,13 @@ async function loadScreeningsAdmin() {
     if (!screenings.length) { list.innerHTML = '<p class="dash-empty">No screenings yet.</p>'; return; }
     list.innerHTML = screenings.map(s => {
       const sales = (s.tickets_sold != null || s.gross_cents != null)
-        ? ` · ${s.tickets_sold || 0} sold · ${money(s.gross_cents)}` : '';
+        ? `${s.tickets_sold || 0} sold · ${money(s.gross_cents)}` : '';
+      const meta = [s.title ? esc(s.town) : '', esc(s.venue || ''), sales].filter(Boolean).join(' · ');
       return `<div class="admin-row" data-id="${s.id}">
         <div class="ar-main">
+          <div class="ar-town">${esc(s.title || s.town)}</div>
           <div class="ar-date">${esc(dateLabel(s))}</div>
-          <div class="ar-town">${esc(s.town)}</div>
-          <div class="ar-meta">${esc(s.venue || '')}${sales}</div>
+          <div class="ar-meta">${meta}</div>
         </div>
         <span class="ar-tag ${esc(s.status)}">${esc(s.status)}</span>
       </div>`;
@@ -98,6 +99,7 @@ function openScreeningModal(s) {
   $('#delete-screening-btn').hidden = !s;
   scrForm.id.value = s ? s.id : '';
   if (s) {
+    scrForm.title.value = s.title || '';
     scrForm.display_date.value = s.display_date || '';
     scrForm.display_date_end.value = s.display_date_end || '';
     scrForm.sort_date.value = s.sort_date || '';
@@ -169,7 +171,7 @@ async function populatePhotoSelect() {
     try { screeningsCache = (await api('/dashboard/api/screenings')).screenings; } catch {}
   }
   sel.innerHTML = screeningsCache.map(s =>
-    `<option value="${s.id}">${esc(s.display_date)} — ${esc(s.town)}</option>`
+    `<option value="${s.id}">${esc(s.title || s.town)} — ${esc(s.display_date)}</option>`
   ).join('');
   if (prev) sel.value = prev;
   loadPhotoAdmin();
@@ -300,7 +302,8 @@ async function refreshMapMarkers() {
     const marker = L.circleMarker([s.lat, s.lng], {
       radius: 8, color, fillColor: color, fillOpacity: 0.7, weight: 2,
     }).bindPopup(
-      `<strong>${esc(s.display_date)}</strong><br>${esc(s.town)}<br>${esc(s.venue || '')}` +
+      `<strong>${esc(s.title || s.town)}</strong><br>${esc(dateLabel(s))}<br>${esc(s.town)}` +
+      (s.venue ? `<br>${esc(s.venue)}` : '') +
       (s.tickets_sold != null ? `<br>${s.tickets_sold} sold` : '')
     );
     marker.addTo(markerLayer);
