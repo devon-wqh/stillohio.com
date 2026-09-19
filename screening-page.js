@@ -54,7 +54,7 @@ function wireModal(screeningId) {
 // visitor off. The trigger is a <button>, not a link: it deliberately carries no
 // href, so there's no way to reach the ticket site without passing the notice.
 // The confirm control inside the dialog is the only outbound path.
-function wireBlockNotice(trigger, ticketUrl, block) {
+function wireBlockNotice(trigger, ticketUrl, block, price) {
   const overlay = document.getElementById('block-notice-overlay');
   const closeBtn = document.getElementById('block-notice-close');
   const go = document.getElementById('block-notice-go');
@@ -63,6 +63,12 @@ function wireBlockNotice(trigger, ticketUrl, block) {
   document.getElementById('block-notice-name').textContent = block;
   document.getElementById('block-notice-go-label').textContent = block;
   go.href = ticketUrl;
+
+  // Price is optional — the line stays hidden for festivals that haven't set one.
+  if (price) {
+    document.getElementById('block-notice-price').textContent = price;
+    document.getElementById('block-notice-price-line').hidden = false;
+  }
 
   const close = () => {
     overlay.hidden = true;
@@ -114,7 +120,7 @@ async function loadScreening() {
   if (s.cta_type === 'tickets' && s.ticket_url && s.ticket_block) {
     // Pure trigger — no href to cmd-click or "open in new tab" around.
     cta.innerHTML = `<button class="button" id="tickets-btn" type="button">Get tickets</button>`;
-    wireBlockNotice(document.getElementById('tickets-btn'), s.ticket_url, s.ticket_block);
+    wireBlockNotice(document.getElementById('tickets-btn'), s.ticket_url, s.ticket_block, s.ticket_price);
   } else if (s.cta_type === 'tickets' && s.ticket_url) {
     cta.innerHTML = `<a class="button" href="${esc(s.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`;
   } else if (s.cta_type === 'updates') {

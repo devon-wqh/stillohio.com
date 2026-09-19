@@ -113,6 +113,7 @@ function openScreeningModal(s) {
     scrForm.cta_type.value = s.cta_type || 'updates';
     scrForm.ticket_url.value = s.ticket_url || '';
     scrForm.ticket_block.value = s.ticket_block || '';
+    scrForm.ticket_price.value = s.ticket_price || '';
     scrForm.tickets_sold.value = s.tickets_sold != null ? s.tickets_sold : '';
     scrForm.gross_dollars.value = s.gross_cents != null ? (s.gross_cents / 100) : '';
   }
