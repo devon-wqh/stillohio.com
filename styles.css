@@ -8,6 +8,7 @@
   --line-yellow: #ffcc00;
   --border: rgba(255,255,255,0.14);
   --field: #808080;
+  --grey: #9a9a9a;
   --mono: 'Space Mono', 'Courier New', monospace;
   --serif: Georgia, "Times New Roman", serif;
 }
@@ -147,6 +148,19 @@ img, svg { display: block; max-width: 100%; }
   max-width: 720px;
   filter: drop-shadow(0 4px 18px rgba(0,0,0,0.7));
 }
+/* Social marks pinned to the bottom of the homepage hero */
+.hero-social {
+  position: absolute;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  filter: drop-shadow(0 2px 10px rgba(0,0,0,0.7));
+}
+.hero-social .social-icon { color: var(--grey); }
+
 .option {
   position: relative;
   display: flex;
