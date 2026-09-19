@@ -51,13 +51,14 @@ function wireModal(screeningId) {
 
 // Some festivals sell by screening block and their ticket page can't preselect
 // one from the URL, so confirm which block the film is in before handing the
-// visitor off. The link keeps its real href, so it still degrades to a plain
-// outbound link without JS.
-function wireBlockNotice(link, ticketUrl, block) {
+// visitor off. The trigger is a <button>, not a link: it deliberately carries no
+// href, so there's no way to reach the ticket site without passing the notice.
+// The confirm control inside the dialog is the only outbound path.
+function wireBlockNotice(trigger, ticketUrl, block) {
   const overlay = document.getElementById('block-notice-overlay');
   const closeBtn = document.getElementById('block-notice-close');
   const go = document.getElementById('block-notice-go');
-  if (!overlay || !link) return;
+  if (!overlay || !trigger) return;
 
   document.getElementById('block-notice-name').textContent = block;
   document.getElementById('block-notice-go-label').textContent = block;
@@ -68,10 +69,7 @@ function wireBlockNotice(link, ticketUrl, block) {
     document.body.style.overflow = '';
   };
 
-  link.addEventListener('click', e => {
-    // Let modified clicks (new tab, download, middle click) through untouched.
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    e.preventDefault();
+  trigger.addEventListener('click', () => {
     overlay.hidden = false;
     document.body.style.overflow = 'hidden';
     go.focus();
@@ -113,9 +111,12 @@ async function loadScreening() {
   document.getElementById('s-venue').textContent = s.venue || '';
 
   const cta = document.getElementById('s-cta');
-  if (s.cta_type === 'tickets' && s.ticket_url) {
+  if (s.cta_type === 'tickets' && s.ticket_url && s.ticket_block) {
+    // Pure trigger — no href to cmd-click or "open in new tab" around.
+    cta.innerHTML = `<button class="button" id="tickets-btn" type="button">Get tickets</button>`;
+    wireBlockNotice(document.getElementById('tickets-btn'), s.ticket_url, s.ticket_block);
+  } else if (s.cta_type === 'tickets' && s.ticket_url) {
     cta.innerHTML = `<a class="button" href="${esc(s.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`;
-    if (s.ticket_block) wireBlockNotice(cta.querySelector('a'), s.ticket_url, s.ticket_block);
   } else if (s.cta_type === 'updates') {
     cta.innerHTML = `<button class="button" id="keep-updated-btn" type="button">Keep me updated</button>`;
     wireModal(s.id);
