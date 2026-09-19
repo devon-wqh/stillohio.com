@@ -443,6 +443,24 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
   padding: 0.3rem;
 }
 .modal-close:hover { color: var(--text); }
+/* Names the screening block the film is in, on the pre-handoff confirmation. */
+.block-callout {
+  margin: 0 0 1.4rem;
+  padding: 0.8rem 1rem;
+  border-left: 2px solid var(--line-yellow);
+  background: rgba(255,204,0,0.07);
+  font-size: 0.95rem;
+}
+.block-callout strong { color: var(--line-yellow); letter-spacing: 0.02em; }
+#block-notice-go { display: inline-block; text-decoration: none; }
+/* Replaces the browser default focus ring, which lands on this button as soon
+   as the dialog opens and reads blue against the site's yellow. */
+#block-notice-go:focus-visible {
+  outline: none;
+  border-color: var(--line-yellow);
+  box-shadow: 0 0 0 3px rgba(255,204,0,0.35);
+}
+
 .modal-form { display: flex; flex-direction: column; gap: 1rem; }
 .modal-form label {
   display: flex;
@@ -585,6 +603,17 @@ h1 { margin: 0 0 0.6rem; font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing
 }
 @media (max-width: 600px) {
   .screening { grid-template-columns: 1fr; }
+  /* The tile collapses to one column here, which puts the date under the
+     absolutely-positioned badge. Long badges ("Western New York Premiere") then
+     overlap the date, so drop the badge into normal flow on its own line and
+     let it wrap rather than run past the tile edge. */
+  .screening .badge {
+    position: static;
+    justify-self: start;
+    max-width: 100%;
+    margin-bottom: -0.2rem;
+    white-space: normal;
+  }
   .photo-grid { grid-template-columns: repeat(2, 1fr); }
   .footer-row { flex-direction: column; align-items: center; }
   .footer-signup { align-items: center; }

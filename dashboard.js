@@ -112,6 +112,7 @@ function openScreeningModal(s) {
     scrForm.lng.value = s.lng != null ? s.lng : '';
     scrForm.cta_type.value = s.cta_type || 'updates';
     scrForm.ticket_url.value = s.ticket_url || '';
+    scrForm.ticket_block.value = s.ticket_block || '';
     scrForm.tickets_sold.value = s.tickets_sold != null ? s.tickets_sold : '';
     scrForm.gross_dollars.value = s.gross_cents != null ? (s.gross_cents / 100) : '';
   }

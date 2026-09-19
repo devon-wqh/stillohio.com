@@ -49,6 +49,39 @@ function wireModal(screeningId) {
   });
 }
 
+// Some festivals sell by screening block and their ticket page can't preselect
+// one from the URL, so confirm which block the film is in before handing the
+// visitor off. The link keeps its real href, so it still degrades to a plain
+// outbound link without JS.
+function wireBlockNotice(link, ticketUrl, block) {
+  const overlay = document.getElementById('block-notice-overlay');
+  const closeBtn = document.getElementById('block-notice-close');
+  const go = document.getElementById('block-notice-go');
+  if (!overlay || !link) return;
+
+  document.getElementById('block-notice-name').textContent = block;
+  document.getElementById('block-notice-go-label').textContent = block;
+  go.href = ticketUrl;
+
+  const close = () => {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+  };
+
+  link.addEventListener('click', e => {
+    // Let modified clicks (new tab, download, middle click) through untouched.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+    go.focus();
+  });
+  go.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.hidden) close(); });
+}
+
 async function loadScreening() {
   const id = new URLSearchParams(location.search).get('id');
   const titleEl = document.getElementById('s-title');
@@ -82,6 +115,7 @@ async function loadScreening() {
   const cta = document.getElementById('s-cta');
   if (s.cta_type === 'tickets' && s.ticket_url) {
     cta.innerHTML = `<a class="button" href="${esc(s.ticket_url)}" target="_blank" rel="noopener">Get tickets</a>`;
+    if (s.ticket_block) wireBlockNotice(cta.querySelector('a'), s.ticket_url, s.ticket_block);
   } else if (s.cta_type === 'updates') {
     cta.innerHTML = `<button class="button" id="keep-updated-btn" type="button">Keep me updated</button>`;
     wireModal(s.id);

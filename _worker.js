@@ -23,6 +23,7 @@ function publicScreening(row) {
     lng: row.lng,
     cta_type: row.cta_type,
     ticket_url: row.ticket_url,
+    ticket_block: row.ticket_block,
     status: row.status,
   };
 }
@@ -138,6 +139,7 @@ function readScreeningInput(body) {
     lng: body.lng === '' || body.lng == null ? null : Number(body.lng),
     cta_type: ['tickets', 'updates', 'none'].includes(body.cta_type) ? body.cta_type : 'updates',
     ticket_url: (body.ticket_url || '').trim() || null,
+    ticket_block: (body.ticket_block || '').trim() || null,
     status: body.status === 'past' ? 'past' : 'upcoming',
     tickets_sold: body.tickets_sold === '' || body.tickets_sold == null ? null : Math.round(Number(body.tickets_sold)),
     gross_cents: body.gross_dollars === '' || body.gross_dollars == null ? null : Math.round(Number(body.gross_dollars) * 100),
@@ -153,11 +155,11 @@ async function createScreening(request, env) {
   }
   const res = await env.DB.prepare(
     `INSERT INTO screenings
-      (title, display_date, display_date_end, sort_date, time, town, venue, badge, lat, lng, cta_type, ticket_url, status, tickets_sold, gross_cents)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      (title, display_date, display_date_end, sort_date, time, town, venue, badge, lat, lng, cta_type, ticket_url, ticket_block, status, tickets_sold, gross_cents)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     s.title, s.display_date, s.display_date_end, s.sort_date, s.time, s.town, s.venue, s.badge,
-    s.lat, s.lng, s.cta_type, s.ticket_url, s.status, s.tickets_sold, s.gross_cents
+    s.lat, s.lng, s.cta_type, s.ticket_url, s.ticket_block, s.status, s.tickets_sold, s.gross_cents
   ).run();
   return json({ ok: true, id: res.meta.last_row_id });
 }
@@ -171,11 +173,11 @@ async function updateScreening(request, env, id) {
   await env.DB.prepare(
     `UPDATE screenings SET
       title = ?, display_date = ?, display_date_end = ?, sort_date = ?, time = ?, town = ?, venue = ?, badge = ?,
-      lat = ?, lng = ?, cta_type = ?, ticket_url = ?, status = ?, tickets_sold = ?, gross_cents = ?
+      lat = ?, lng = ?, cta_type = ?, ticket_url = ?, ticket_block = ?, status = ?, tickets_sold = ?, gross_cents = ?
      WHERE id = ?`
   ).bind(
     s.title, s.display_date, s.display_date_end, s.sort_date, s.time, s.town, s.venue, s.badge,
-    s.lat, s.lng, s.cta_type, s.ticket_url, s.status, s.tickets_sold, s.gross_cents, id
+    s.lat, s.lng, s.cta_type, s.ticket_url, s.ticket_block, s.status, s.tickets_sold, s.gross_cents, id
   ).run();
   return json({ ok: true });
 }
