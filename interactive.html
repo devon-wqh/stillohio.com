@@ -219,8 +219,6 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
   (() => {
-    const OFF = new Set((new URLSearchParams(location.search).get('off') || '').split(',').filter(Boolean));
-    if (OFF.has('overlays')) ['flash', 'died'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
     const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -710,7 +708,7 @@
       addHair(head, spec.hair);
       if (spec.glasses) addGlasses(head);
       let tag = null;
-      if (spec.name && !OFF.has('tags')) { tag = makeNameTag(spec.name); tag.position.y = 2.25; tag.visible = false; g.add(tag); }
+      if (spec.name) { tag = makeNameTag(spec.name); tag.position.y = 2.25; tag.visible = false; g.add(tag); }
       g.scale.setScalar(0.94 * (spec.height || 1));
       g.userData = { tag, body, legs, arms, head, phase: Math.random() * 6, speed: 0.8 + Math.random() * 0.5, idle: Math.random() * 2, x: 0, z: 0, tx: 0, tz: 0, yaw: Math.random() * 6, flee: 0, seed: Math.random() * 10 };
       return g;
@@ -888,7 +886,6 @@
       return deerGeo;
     }
     function addDeer(g, wx, wz) {
-      if (OFF.has('deer')) return;
       const shoulder = RW - 1.8;
       const onNS = new THREE.Mesh(getDeerGeo(), deerMat); // road running along z; legs toward the centre line
       onNS.position.set(wx - shoulder, 0, wz + CHUNK / 2); onNS.rotation.y = Math.PI / 2;
@@ -968,7 +965,6 @@
     // context starts on the "click to enter" gesture (browsers require one).
     let audioCtx = null, master = null, engine = null, soundMuted = false, throttleNow = 0;
     function startSound() {
-      if (OFF.has('sound')) return;
       if (audioCtx) { audioCtx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
@@ -1269,11 +1265,11 @@
       const fwdX = -Math.sin(carHeading), fwdZ = -Math.cos(carHeading);
       const leftX = -Math.cos(carHeading), leftZ = Math.sin(carHeading);
       rumble += dt * spd;
-      const shake = Math.min(1, spd / 6);
-      const y = EYE_Y + Math.sin(rumble * 2.3) * 0.004 * shake + (Math.random() - 0.5) * 0.002 * shake;
+      const rumbleAmt = Math.min(1, spd / 6);
+      const y = EYE_Y + Math.sin(rumble * 2.3) * 0.004 * rumbleAmt + (Math.random() - 0.5) * 0.002 * rumbleAmt;
       camera.position.set(carX + leftX * EYE_LEFT + fwdX * EYE_FWD, y, carZ + leftZ * EYE_LEFT + fwdZ * EYE_FWD);
       camera.rotation.order = 'YXZ';
-      camera.rotation.y = carHeading + lookYaw + steer * 0.12 * shake;              // glance into the turn
+      camera.rotation.y = carHeading + lookYaw + steer * 0.12 * rumbleAmt;              // glance into the turn
       camera.rotation.x = lookPitch + clamp(accelFelt * 0.003, -0.04, 0.03);         // dip braking, lift accelerating
       camera.rotation.z = -steer * 0.035 * Math.min(1, spd / 8) * Math.sign(carSpeed); // body leans out of the turn
       const fov = BASE_FOV + FOV_GAIN * fast;
@@ -1513,28 +1509,8 @@
       camera.rotation.x -= 0.6 * boom.t;
       if (boom.t > 1.0 && !boom.done) { boom.done = true; deathSequence(); }
     }
-    // ---- Adaptive quality -------------------------------------------------------------
-    // Slow GPUs fall far behind (frames arrive seconds apart while the game logic
-    // keeps running). Watch the real time between frames; when it stays high,
-    // step the render resolution down.
-    const QUALITY_STEPS = [{ ratio: 1 }, { ratio: 0.75 }, { ratio: 0.5 }, { ratio: 0.35 }];
-    let quality = 0, frameAvg = 16, slowFor = 0, frameNo = 0;
-    function applyQuality() {
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1) * QUALITY_STEPS[quality].ratio);
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-    function watchFrameRate(interval) {
-      if (!started || interval <= 0 || interval > 10000) return;
-      frameAvg += (interval - frameAvg) * 0.2;
-      slowFor = frameAvg > 45 ? slowFor + interval : 0;
-      if (slowFor > 1500 && quality < QUALITY_STEPS.length - 1) {
-        quality++; slowFor = 0; frameAvg = 30;
-        applyQuality();
-        console.info(`[Still Ohio] running slowly; quality step ${quality}`);
-      }
-    }
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); watchFrameRate(t - last); const dt = Math.min((t - last) / 1000, 0.05); last = t; frameNo++; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
 
     // ---- Community characters -------------------------------------------------------
     // Players build these at the end of the game; the worker stores them and the
@@ -1568,7 +1544,7 @@
         } catch (err) { console.warn('[Still Ohio] skipped a character', err); }
       });
     }
-    if (!OFF.has('community')) fetch('/api/characters').then(r => (r.ok ? r.json() : null)).then(d => { if (d && d.characters) addCommunity(d.characters); }).catch(() => {});
+    fetch('/api/characters').then(r => (r.ok ? r.json() : null)).then(d => { if (d && d.characters) addCommunity(d.characters); }).catch(() => {});
 
     // ---- End card: upcoming screenings ------------------------------------------------
     const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
