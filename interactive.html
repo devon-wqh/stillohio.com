@@ -119,8 +119,6 @@
     .touch-device #hud.visible #honk-btn { display: block; }
     #flash { position: fixed; inset: 0; z-index: 116; pointer-events: none; background: radial-gradient(circle, #fff8e0 0%, #ffb040 45%, #ff5a10 100%); opacity: 0; transition: opacity 0.9s ease; }
     #flash.on { opacity: 1; transition: none; }
-    #debug { position: fixed; top: 3.2rem; left: 1rem; z-index: 140; margin: 0; padding: 0.5rem 0.7rem; background: rgba(0,0,0,0.75); color: #9f9; font: 11px/1.5 Menlo, monospace; pointer-events: none; white-space: pre; }
-    #debug[hidden] { display: none; }
   </style>
 </head>
 <body>
@@ -158,7 +156,6 @@
   <button id="radio-btn" type="button">Radio: on</button>
   <div id="now-playing">♪ Now playing — “Weird” by Hana Eid</div>
   <div id="fade"></div>
-  <pre id="debug" hidden></pre>
   <div id="flash"></div>
   <div id="end-card" role="dialog" aria-label="Still Ohio — coming soon">
     <div class="card">
@@ -1536,27 +1533,8 @@
         console.info(`[Still Ohio] running slowly; quality step ${quality}`);
       }
     }
-    const dbgEl = document.getElementById('debug');
-    let dbgOn = /[?&]debug\b/.test(location.search), dbgAcc = 0, dbgFrames = 0;
-    const gpuName = (() => {
-      const gl = renderer.getContext();
-      const ext = gl.getExtension('WEBGL_debug_renderer_info');
-      return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
-    })();
-    document.addEventListener('keydown', e => { if (e.code === 'F3') { e.preventDefault(); dbgOn = !dbgOn; dbgEl.hidden = !dbgOn; } });
-    dbgEl.hidden = !dbgOn;
-    function updateDebug(interval) {
-      if (!dbgOn) return;
-      dbgAcc += interval; dbgFrames++;
-      if (dbgAcc < 500) return;
-      const info = renderer.info.render;
-      dbgEl.textContent = `${(1000 * dbgFrames / dbgAcc).toFixed(1)} fps · ${(dbgAcc / dbgFrames).toFixed(0)} ms/frame\n` +
-        `quality ${quality} (res ${Math.round(renderer.getPixelRatio() * 100)}%) · ${renderer.domElement.width}×${renderer.domElement.height}\n` +
-        `${info.calls} draws · ${info.triangles} tris\nGPU: ${gpuName}`;
-      dbgAcc = 0; dbgFrames = 0;
-    }
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); watchFrameRate(t - last); updateDebug(t - last); const dt = Math.min((t - last) / 1000, 0.05); last = t; frameNo++; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); watchFrameRate(t - last); const dt = Math.min((t - last) / 1000, 0.05); last = t; frameNo++; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
 
     // ---- Community characters -------------------------------------------------------
     // Players build these at the end of the game; the worker stores them and the
