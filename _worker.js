@@ -77,7 +77,7 @@ async function handleUpdatesSignup(request, env) {
     return json({ ok: false, error: 'Invalid request body.' }, 400);
   }
 
-  const type = body.type === 'event' ? 'event' : 'footer';
+  const type = ['event', 'game'].includes(body.type) ? body.type : 'footer';
   const email = typeof body.email === 'string' ? body.email.trim() : '';
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const zip = typeof body.zip === 'string' ? body.zip.trim() : '';
@@ -104,6 +104,98 @@ async function handleUpdatesSignup(request, env) {
   const key = `signup:${Date.now()}:${crypto.randomUUID()}`;
   await env.SIGNUPS.put(key, JSON.stringify(record));
   return json({ ok: true });
+}
+
+// ---- Community characters (public) -------------------------------------------
+// Visitors build a character at the end of the game and it joins the first gas
+// station for everyone. Colour choices are indices into the game's palettes, so
+// here we only need each palette's size to validate them.
+
+const CHARACTER_CHOICES = {
+  shirt: ['long', 'short'],
+  pattern: ['plain', 'stripes', 'dots'],
+  pants: ['pants', 'shorts'],
+  hair: ['short', 'long', 'wavy', 'ponytail', 'buzz'],
+};
+const CHARACTER_PALETTE_SIZES = { shirtColor: 8, pantsColor: 6, hairColor: 8, skin: 6 };
+const CHARACTERS_SHOWN = 24; // newest visible characters loaded into the game
+
+// Names are public, so screen them. Short words are matched as whole words
+// (they hide inside innocent names like Cassidy or Dickens); the unambiguous
+// ones are matched anywhere, including across spaces. Common letter swaps
+// (0→o, 1→i, 3→e, 4/@→a, 5/$→s, 7→t) are undone first.
+const BLOCKED_WORDS = ['ass', 'dick', 'cock', 'cum', 'sex', 'rape', 'spic', 'chink', 'coon', 'homo', 'tit', 'tits', 'nazi', 'hitler', 'kkk', 'jizz'];
+const BLOCKED_PARTS = ['fuck', 'shit', 'cunt', 'nigg', 'fag', 'retard', 'whore', 'slut', 'bitch', 'bastard', 'asshole', 'pussy', 'penis', 'vagina', 'porn', 'dildo', 'kike', 'tranny', 'wank', 'twat', 'molest', 'pedo'];
+
+function nameIsBlocked(name) {
+  const norm = name.toLowerCase()
+    .replace(/0/g, 'o').replace(/[@4]/g, 'a').replace(/[1!|]/g, 'i')
+    .replace(/3/g, 'e').replace(/[5$]/g, 's').replace(/7/g, 't');
+  const words = norm.split(/[^a-z]+/).filter(Boolean);
+  if (words.some(w => BLOCKED_WORDS.includes(w))) return true;
+  const squashed = words.join('');
+  return BLOCKED_PARTS.some(p => squashed.includes(p));
+}
+
+function readCharacter(body) {
+  const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
+  const email = typeof body.email === 'string' ? body.email.trim() : '';
+  if (!name || name.length > 20) return { error: 'Your name needs to be 1–20 characters.' };
+  if (!/^[\p{L}\p{N} .'’\-!?&]+$/u.test(name)) return { error: 'Letters, numbers and simple punctuation only in the name.' };
+  if (nameIsBlocked(name)) return { error: "Let's pick a different name." };
+  if (!EMAIL_RE.test(email) || email.length > 254) return { error: 'A valid email is required.' };
+
+  const c = body.config && typeof body.config === 'object' ? body.config : {};
+  const config = {};
+  for (const [key, options] of Object.entries(CHARACTER_CHOICES)) {
+    if (!options.includes(c[key])) return { error: `Invalid ${key}.` };
+    config[key] = c[key];
+  }
+  for (const [key, size] of Object.entries(CHARACTER_PALETTE_SIZES)) {
+    if (!Number.isInteger(c[key]) || c[key] < 0 || c[key] >= size) return { error: `Invalid ${key}.` };
+    config[key] = c[key];
+  }
+  const height = Number(c.height);
+  config.height = Number.isFinite(height) ? Math.round(Math.min(1.12, Math.max(0.85, height)) * 100) / 100 : 1;
+  config.glasses = c.glasses === true;
+  return { name, email, config };
+}
+
+async function createCharacter(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ ok: false, error: 'Invalid request body.' }, 400);
+  }
+  // Honeypot: the form has a hidden "website" field only bots fill in.
+  if (body.website) return json({ ok: true });
+
+  const c = readCharacter(body);
+  if (c.error) return json({ ok: false, error: c.error }, 400);
+
+  const now = new Date().toISOString();
+  const row = await env.DB.prepare(
+    `INSERT INTO characters (email, name, config, created_at, updated_at) VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(email) DO UPDATE SET name = excluded.name, config = excluded.config, updated_at = excluded.updated_at
+     RETURNING id`
+  ).bind(c.email.toLowerCase(), c.name, JSON.stringify(c.config), now, now).first();
+
+  // Building a character also joins the email list.
+  const record = { type: 'character', name: c.name, email: c.email, zip: null, phone: null, event: null, submittedAt: now };
+  await env.SIGNUPS.put(`signup:${Date.now()}:${crypto.randomUUID()}`, JSON.stringify(record));
+
+  return json({ ok: true, character: { id: row.id, name: c.name, config: c.config } });
+}
+
+async function listCharactersPublic(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT id, name, config FROM characters WHERE hidden = 0 ORDER BY updated_at DESC LIMIT ?`
+  ).bind(CHARACTERS_SHOWN).all();
+  const characters = results.map(r => ({ id: r.id, name: r.name, config: JSON.parse(r.config) }));
+  return new Response(JSON.stringify({ ok: true, characters }), {
+    headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+  });
 }
 
 // ---- Screenings (public reads) ----------------------------------------------
@@ -240,6 +332,26 @@ async function listSignups(env) {
   return json({ ok: true, signups: records });
 }
 
+// ---- Admin: characters -------------------------------------------------------
+
+async function listCharactersAdmin(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM characters ORDER BY updated_at DESC`
+  ).all();
+  return json({ ok: true, characters: results.map(r => ({ ...r, config: JSON.parse(r.config) })) });
+}
+
+async function setCharacterHidden(request, env, id) {
+  const body = await request.json().catch(() => ({}));
+  await env.DB.prepare(`UPDATE characters SET hidden = ? WHERE id = ?`).bind(body.hidden ? 1 : 0, id).run();
+  return json({ ok: true });
+}
+
+async function deleteCharacter(env, id) {
+  await env.DB.prepare(`DELETE FROM characters WHERE id = ?`).bind(id).run();
+  return json({ ok: true });
+}
+
 // ---- Admin: photos -----------------------------------------------------------
 
 async function listPhotos(env, screeningId) {
@@ -336,6 +448,13 @@ export default {
       return handleUpdatesSignup(request, env);
     }
 
+    // Public community characters (the game's first gas station)
+    if (path === '/api/characters') {
+      if (method === 'GET') return listCharactersPublic(env);
+      if (method === 'POST') return createCharacter(request, env);
+      return json({ ok: false, error: 'Method not allowed.' }, 405);
+    }
+
     // Public screenings reads
     if (path === '/api/screenings' && method === 'GET') {
       return listScreeningsPublic(env);
@@ -355,6 +474,11 @@ export default {
     if (path.startsWith('/dashboard/api/')) {
       if (path === '/dashboard/api/summary' && method === 'GET') return adminSummary(env);
       if (path === '/dashboard/api/signups' && method === 'GET') return listSignups(env);
+
+      if (path === '/dashboard/api/characters' && method === 'GET') return listCharactersAdmin(env);
+      const adminChar = path.match(/^\/dashboard\/api\/characters\/(\d+)$/);
+      if (adminChar && method === 'PUT') return setCharacterHidden(request, env, Number(adminChar[1]));
+      if (adminChar && method === 'DELETE') return deleteCharacter(env, Number(adminChar[1]));
 
       if (path === '/dashboard/api/screenings' && method === 'GET') return listScreeningsAdmin(env);
       if (path === '/dashboard/api/screenings' && method === 'POST') return createScreening(request, env);

@@ -278,6 +278,58 @@ $('#export-emails-btn').addEventListener('click', () => {
   URL.revokeObjectURL(a.href);
 });
 
+// ---- Characters -------------------------------------------------------------
+
+function characterSummary(c) {
+  const k = c.config || {};
+  return [
+    `${k.shirt === 'short' ? 'short' : 'long'} sleeve`,
+    k.pattern && k.pattern !== 'plain' ? k.pattern : null,
+    k.pants,
+    `${k.hair} hair`,
+    k.glasses ? 'glasses' : null,
+  ].filter(Boolean).join(', ');
+}
+async function loadCharacters() {
+  const table = $('#characters-table');
+  try {
+    const { characters } = await api('/dashboard/api/characters');
+    if (!characters.length) { table.innerHTML = '<tr><td class="dash-empty">No characters yet.</td></tr>'; return; }
+    const head = `<tr><th>Updated</th><th>Name</th><th>Email</th><th>Look</th><th>Status</th><th></th></tr>`;
+    const rows = characters.map(c => `<tr>
+      <td>${esc((c.updated_at || '').slice(0, 10))}</td>
+      <td>${esc(c.name)}</td>
+      <td>${esc(c.email)}</td>
+      <td>${esc(characterSummary(c))}</td>
+      <td>${c.hidden ? 'Hidden' : 'In game'}</td>
+      <td>
+        <button class="button" type="button" data-char-hide="${c.id}" data-hidden="${c.hidden ? 0 : 1}">${c.hidden ? 'Show' : 'Hide'}</button>
+        <button class="button button-danger" type="button" data-char-delete="${c.id}">Delete</button>
+      </td>
+    </tr>`).join('');
+    table.innerHTML = head + rows;
+  } catch (e) {
+    table.innerHTML = `<tr><td class="dash-empty">Couldn't load: ${esc(e.message)}</td></tr>`;
+  }
+}
+$('#characters-table').addEventListener('click', async e => {
+  const hide = e.target.closest('[data-char-hide]');
+  const del = e.target.closest('[data-char-delete]');
+  try {
+    if (hide) {
+      await api(`/dashboard/api/characters/${hide.dataset.charHide}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hidden: hide.dataset.hidden === '1' }),
+      });
+    } else if (del) {
+      if (!confirm('Delete this character? This cannot be undone.')) return;
+      await api(`/dashboard/api/characters/${del.dataset.charDelete}`, { method: 'DELETE' });
+    } else return;
+    loadCharacters();
+  } catch (err) { alert(err.message); }
+});
+
 // ---- Map --------------------------------------------------------------------
 
 let map, markerLayer;
@@ -331,3 +383,4 @@ loadOverview();
 loadScreeningsAdmin();
 populatePhotoSelect();
 loadEmails();
+loadCharacters();
