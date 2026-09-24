@@ -603,6 +603,7 @@
         if (pattern === 'stripes') for (let y = 4; y < 64; y += 16) cx.fillRect(0, y, 64, 7);
         else for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { cx.beginPath(); cx.arc(8 + x * 16 + (y % 2) * 8, 8 + y * 16, 4, 0, Math.PI * 2); cx.fill(); }
         const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
         const m = new THREE.MeshLambertMaterial({ map: tex, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.14 });
         m.onBeforeCompile = capLight;
         m.customProgramCacheKey = () => 'person-map';
@@ -701,6 +702,13 @@
       if (spec.collar) [-1, 1].forEach(s => { const c = rbox(0.14, 0.06, 0.03, 0.01, spec.collar, s * 0.1, 1.43, 0.155); c.rotation.z = s * 0.5; body.add(c); });
       if (spec.pocket) body.add(rbox(0.32, 0.14, 0.03, 0.02, spec.pocket, 0, 1.0, 0.15));
       if (spec.hood) body.add(rbox(0.4, 0.14, 0.14, 0.06, spec.hood, 0, 1.47, -0.16));
+      if (spec.skirt) { // flared, knee length, oval to fit the hips
+        const skirtGeo = new THREE.CylinderGeometry(0.3, 0.42, 0.42, 14);
+        const uv = skirtGeo.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setX(i, uv.getX(i) * 4); // pattern repeats around, so dots stay round
+        const skirt = new THREE.Mesh(skirtGeo, matFor(spec.skirt));
+        skirt.position.y = 0.66; skirt.scale.z = 0.75;
+        body.add(skirt);
+      }
       const arms = [-1, 1].map(s => { const a = limb(spec.arms, 0.16, 0.18, 0.06); a.position.set(s * 0.36, 1.43, 0); body.add(a); return a; });
       const head = new THREE.Group(); head.position.set(0, 1.69, 0); body.add(head);
       head.add(rbox(0.4, 0.4, 0.4, 0.1, spec.skin || SKIN, 0, 0, 0));
@@ -1561,16 +1569,31 @@
       hairColor: [[0x161111, 'Black'], [0x3a2416, 'Dark brown'], [HAIR_BROWN, 'Brown'], [0x8c3c1c, 'Auburn'], [HAIR_BLONDE, 'Blonde'], [0xece2c6, 'Platinum'], [0x8e8e8e, 'Grey'], [0xe070a8, 'Pink']],
       skin: [[0xf2d3bd, 'Skin tone 1'], [0xe3b598, 'Skin tone 2'], [0xcb9570, 'Skin tone 3'], [0xa8704a, 'Skin tone 4'], [0x7f4f31, 'Skin tone 5'], [0x4f301e, 'Skin tone 6']],
     };
+    const UNDERSHIRT = 0xeeeae2; // the long sleeve under a layered top (Jake's look)
     function specFromConfig(c, name) {
       const col = key => PALETTES[key][c[key]][0];
-      const skin = col('skin'), pants = col('pantsColor');
-      const shirt = c.pattern === 'plain' ? col('shirtColor') : { pattern: c.pattern, color: col('shirtColor') };
+      const skin = col('skin'), bottom = col('pantsColor');
+      const top = c.pattern === 'plain' ? col('shirtColor') : { pattern: c.pattern, color: col('shirtColor') };
+      const dress = c.pants === 'dress', skirted = dress || c.pants === 'skirt';
+      const waist = dress ? top : bottom; // band at the bottom of the torso
+      const torso = c.shirt === 'tube'
+        ? (dress ? [[0.1, skin], [0.52, top]] : [[0.1, skin], [0.22, top], [0.16, skin], [0.14, waist]]) // Sofia's tube top
+        : (dress ? [[0.62, top]] : [[0.56, top], [0.06, waist]]);
+      const arms = {
+        long: [[0.54, top], [0.08, skin]],
+        short: [[0.2, top], [0.34, skin], [0.08, skin]],
+        tube: [[0.62, skin]],
+        layered: [[0.22, top], [0.32, UNDERSHIRT], [0.08, skin]],
+      }[c.shirt];
+      const legs = c.pants === 'pants' ? [[0.72, bottom], [0.1, SNEAKER]]
+        : c.pants === 'shorts' ? [[0.3, bottom], [0.42, skin], [0.1, SNEAKER]]
+        : [[0.72, skin], [0.1, SNEAKER]];
       return {
         name, skin, height: c.height, glasses: c.glasses,
         hair: { color: col('hairColor'), style: c.hair },
-        torso: [[0.56, shirt], [0.06, pants]],
-        arms: c.shirt === 'long' ? [[0.54, shirt], [0.08, skin]] : [[0.2, shirt], [0.34, skin], [0.08, skin]],
-        legs: c.pants === 'shorts' ? [[0.3, pants], [0.42, skin], [0.1, SNEAKER]] : [[0.72, pants], [0.1, SNEAKER]],
+        torso, arms, legs,
+        front: c.shirt === 'layered' ? { color: UNDERSHIRT, w: 0.2 } : undefined, // open short sleeve over the undershirt
+        skirt: skirted ? (dress ? top : bottom) : undefined,
       };
     }
     function addCommunity(list) {
@@ -1610,10 +1633,10 @@
 
     // ---- Build your character ---------------------------------------------------------
     const BUILDER_FIELDS = [
-      { key: 'shirt', label: 'Shirt', options: [['long', 'Long sleeve'], ['short', 'Short sleeve']] },
+      { key: 'shirt', label: 'Top', options: [['long', 'Long sleeve'], ['short', 'Short sleeve'], ['tube', 'Tube top'], ['layered', 'Short over long sleeve']] },
       { key: 'pattern', label: 'Pattern', options: [['plain', 'Plain'], ['stripes', 'Stripes'], ['dots', 'Polka dots']] },
-      { key: 'shirtColor', label: 'Shirt color', swatch: true },
-      { key: 'pants', label: 'Bottoms', options: [['pants', 'Pants'], ['shorts', 'Shorts']] },
+      { key: 'shirtColor', label: 'Top color', swatch: true },
+      { key: 'pants', label: 'Bottoms', options: [['pants', 'Pants'], ['shorts', 'Shorts'], ['skirt', 'Skirt'], ['dress', 'Dress (matches top)']] },
       { key: 'pantsColor', label: 'Bottoms color', swatch: true },
       { key: 'skin', label: 'Skin tone', swatch: true },
       { key: 'hairColor', label: 'Hair color', swatch: true },

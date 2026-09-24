@@ -283,7 +283,7 @@ $('#export-emails-btn').addEventListener('click', () => {
 function characterSummary(c) {
   const k = c.config || {};
   return [
-    `${k.shirt === 'short' ? 'short' : 'long'} sleeve`,
+    { long: 'long sleeve', short: 'short sleeve', tube: 'tube top', layered: 'short over long sleeve' }[k.shirt] || k.shirt,
     k.pattern && k.pattern !== 'plain' ? k.pattern : null,
     k.pants,
     `${k.hair} hair`,

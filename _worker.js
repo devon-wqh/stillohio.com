@@ -112,9 +112,9 @@ async function handleUpdatesSignup(request, env) {
 // here we only need each palette's size to validate them.
 
 const CHARACTER_CHOICES = {
-  shirt: ['long', 'short'],
+  shirt: ['long', 'short', 'tube', 'layered'],
   pattern: ['plain', 'stripes', 'dots'],
-  pants: ['pants', 'shorts'],
+  pants: ['pants', 'shorts', 'skirt', 'dress'],
   hair: ['short', 'long', 'wavy', 'ponytail', 'buzz'],
 };
 const CHARACTER_PALETTE_SIZES = { shirtColor: 8, pantsColor: 6, hairColor: 8, skin: 6 };
