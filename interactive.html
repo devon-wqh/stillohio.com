@@ -895,7 +895,7 @@
     }
     const CHUNK = 220, RW = 7;
     function buildChunkClean(cx, cz) { const g = new THREE.Group(); const wx = cx * CHUNK, wz = cz * CHUNK; const addPlane = (w, d, mat, x, z, y = 0.001) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); g.add(m); }; addPlane(CHUNK, CHUNK, M.ground, wx, wz, 0); addPlane(RW * 2, CHUNK, M.road, wx, wz, 0.004); addPlane(CHUNK, RW * 2, M.road, wx, wz, 0.004); const n = Math.floor(CHUNK / 10); for (let i = -n; i <= n; i++) { addPlane(0.14, 2.8, M.dash, wx, wz + i * 10, 0.01); addPlane(2.8, 0.14, M.dash, wx + i * 10, wz, 0.01); } const station = buildStation(getSignTex(stationSignId(chunkKey(cx, cz)))); station.position.set(wx + RW + 1, 0, wz + RW + 1); g.add(station); g.userData.signMats = station.userData.signMats; addTrees(g, wx, wz, RW); addStreetlights(g, wx, wz); addStoplight(g, wx, wz); addDeer(g, wx, wz); return g; }
-    const chunks = new Map(); const RENDER_R = 2; function chunkKey(cx, cz) { return `${cx},${cz}`; } function updateChunks(px, pz) { const pcx = Math.round(px / CHUNK), pcz = Math.round(pz / CHUNK); for (let cx = pcx - RENDER_R; cx <= pcx + RENDER_R; cx++) for (let cz = pcz - RENDER_R; cz <= pcz + RENDER_R; cz++) { const k = chunkKey(cx, cz); if (!chunks.has(k)) { const c = buildChunkClean(cx, cz); scene.add(c); chunks.set(k, c); } } for (const [k, c] of chunks) { const [cx, cz] = k.split(',').map(Number); if (Math.abs(cx - pcx) > RENDER_R + 1 || Math.abs(cz - pcz) > RENDER_R + 1) { scene.remove(c); c.traverse(o => { if (!o.userData.shared) o.geometry?.dispose(); if (o.userData.ownMat) o.material.dispose(); }); chunks.delete(k); } } }
+    const chunks = new Map(); const RENDER_R = 1; function chunkKey(cx, cz) { return `${cx},${cz}`; } function updateChunks(px, pz) { const pcx = Math.round(px / CHUNK), pcz = Math.round(pz / CHUNK); for (let cx = pcx - RENDER_R; cx <= pcx + RENDER_R; cx++) for (let cz = pcz - RENDER_R; cz <= pcz + RENDER_R; cz++) { const k = chunkKey(cx, cz); if (!chunks.has(k)) { const c = buildChunkClean(cx, cz); scene.add(c); chunks.set(k, c); } } for (const [k, c] of chunks) { const [cx, cz] = k.split(',').map(Number); if (Math.abs(cx - pcx) > RENDER_R + 1 || Math.abs(cz - pcz) > RENDER_R + 1) { scene.remove(c); c.traverse(o => { if (!o.userData.shared) o.geometry?.dispose(); if (o.userData.ownMat) o.material.dispose(); }); chunks.delete(k); } } }
     const keys = {}; document.addEventListener('keydown', e => { if (e.target instanceof HTMLInputElement || (e.target.closest && e.target.closest('#builder, #end-card'))) return; if (e.code === 'Space' && !e.repeat) honk(); if (e.code === 'KeyR' && started && !ending && !e.repeat) setRadio(!radioOn); if (e.code === 'KeyM' && started && !e.repeat) setMuted(!soundMuted); keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); }); document.addEventListener('keyup', e => { keys[e.code] = false; });
 
     const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
@@ -1510,8 +1510,34 @@
       camera.rotation.x -= 0.6 * boom.t;
       if (boom.t > 1.0 && !boom.done) { boom.done = true; deathSequence(); }
     }
+    // ---- Adaptive quality -------------------------------------------------------------
+    // Slow GPUs fall far behind (frames arrive seconds apart while the game logic
+    // keeps running). Watch the real time between frames; when it stays high,
+    // step down: mirror off, then lower render resolution.
+    const QUALITY_STEPS = [
+      { mirror: true, ratio: 1 },
+      { mirror: false, ratio: 1 },
+      { mirror: false, ratio: 0.75 },
+      { mirror: false, ratio: 0.5 },
+      { mirror: false, ratio: 0.35 },
+    ];
+    let quality = 0, frameAvg = 16, slowFor = 0, frameNo = 0;
+    function applyQuality() {
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1) * QUALITY_STEPS[quality].ratio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    function watchFrameRate(interval) {
+      if (!started || interval <= 0 || interval > 10000) return;
+      frameAvg += (interval - frameAvg) * 0.2;
+      slowFor = frameAvg > 45 ? slowFor + interval : 0;
+      if (slowFor > 1500 && quality < QUALITY_STEPS.length - 1) {
+        quality++; slowFor = 0; frameAvg = 30;
+        applyQuality();
+        console.info(`[Still Ohio] running slowly; quality step ${quality}`);
+      }
+    }
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); const mRT = carBody.userData.mirrorRT; const mCam = carBody.userData.mirrorCam; if (mRT && mCam) { mCam.position.copy(camera.position); mCam.rotation.order = 'YXZ'; mCam.rotation.y = carHeading + Math.PI; mCam.rotation.x = 0; mCam.rotation.z = 0; renderer.setRenderTarget(mRT); renderer.render(scene, mCam); renderer.setRenderTarget(null); } hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); watchFrameRate(t - last); const dt = Math.min((t - last) / 1000, 0.05); last = t; frameNo++; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); const mRT = carBody.userData.mirrorRT; const mCam = carBody.userData.mirrorCam; if (mRT && mCam && QUALITY_STEPS[quality].mirror && frameNo % 2 === 0) { mCam.position.copy(camera.position); mCam.rotation.order = 'YXZ'; mCam.rotation.y = carHeading + Math.PI; mCam.rotation.x = 0; mCam.rotation.z = 0; renderer.setRenderTarget(mRT); renderer.render(scene, mCam); renderer.setRenderTarget(null); } hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
 
     // ---- Community characters -------------------------------------------------------
     // Players build these at the end of the game; the worker stores them and the
