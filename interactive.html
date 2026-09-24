@@ -31,6 +31,8 @@
     .joystick-label { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 0.6rem; color: rgba(224,200,150,0.55); font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; white-space: nowrap; transition: opacity 1s; pointer-events: none; }
     .touch-device #hud.visible .joystick { display: block; }
     #radio-btn { position: fixed; top: 1rem; right: 1rem; z-index: 110; display: none; background: transparent; border: 1px solid rgba(192,168,112,0.35); color: #d7c49b; font-family: inherit; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; padding: 0.45rem 0.7rem; cursor: pointer; }
+    #view-btn { position: fixed; top: 3.6rem; right: 1rem; z-index: 110; display: none; background: transparent; border: 1px solid rgba(192,168,112,0.35); color: #d7c49b; font-family: inherit; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; padding: 0.45rem 0.7rem; cursor: pointer; }
+    #view-btn.visible { display: block; }
     #radio-btn.visible { display: block; }
     #now-playing { position: fixed; bottom: 3.4rem; left: 50%; transform: translateX(-50%); z-index: 20; color: rgba(255,140,60,0.8); font-size: 0.66rem; letter-spacing: 0.22em; text-transform: uppercase; pointer-events: none; opacity: 0; transition: opacity 1.2s; white-space: nowrap; }
     #now-playing.on { opacity: 1; }
@@ -134,12 +136,13 @@
           <div class="how-row">Radio on / off <span><kbd>R</kbd></span></div>
           <div class="how-row">Mute all sound <span><kbd>M</kbd></span></div>
           <div class="how-row">Honk <span><kbd>Space</kbd></span></div>
+          <div class="how-row">1st / 3rd person view <span><kbd>V</kbd></span></div>
         </div>
         <div class="how-touch">
           <div class="how-row">Drive &amp; steer <b>left thumb</b></div>
           <div class="how-row">Push up to go, down to brake <b>&amp; reverse</b></div>
           <div class="how-row">Look around <b>right thumb</b></div>
-          <div class="how-row">Radio <b>top right</b></div>
+          <div class="how-row">Radio &amp; view <b>top right</b></div>
           <div class="how-row">Honk <b>button above the sticks</b></div>
         </div>
       </div>
@@ -152,8 +155,9 @@
     <button id="honk-btn" type="button">Honk</button>
     <div id="joystick-look" class="joystick joystick-right"><div class="joystick-knob"></div><div class="joystick-label">look around</div></div>
   </div>
-  <div id="controls-hint">↑↓ — drive · ←→ — steer · WASD — look · Space — honk · R — radio · M — mute</div>
+  <div id="controls-hint">↑↓ — drive · ←→ — steer · WASD — look · Space — honk · V — view · R — radio · M — mute</div>
   <button id="radio-btn" type="button">Radio: on</button>
+  <button id="view-btn" type="button">View: 1st</button>
   <div id="now-playing">♪ Now playing — “Weird” by Hana Eid</div>
   <div id="fade"></div>
   <div id="flash"></div>
@@ -456,7 +460,7 @@
     const STAGES = [
       {
         header: 'STARRING',
-        rows: [['ANA', 'FERNANDA LOPEZ'], ['HENRY', 'MICHAEL ZAPESOTSKY'], ['JULIA', 'SOFIA ANGELOPOULOS'], ['JOHNNY', 'JAKE MELAMED']],
+        rows: [['ANA', 'FERNANDA LOPEZ'], ['HENRY', 'MICHAEL ZAPESOTSKY'], ['JULIA', 'SOFIA ANGELOPOULOS'], ['JOHNNY', 'JAKE MELAMED'], ['WEIRDO', 'TATE REHKLAU'], ['TRUCKER', 'ERIK AUDE']],
         people: [
           { // Fernanda: jeans, grey hoodie
             name: 'Ana', // character names; the actors can build their own
@@ -482,6 +486,13 @@
             hair: { color: HAIR_BROWN, style: 'short' },
             torso: [[0.56, 0x6b4526], [0.06, 0x1a1a1e]], front: { color: 0xeeeae2, w: 0.2 },
             arms: [[0.22, 0x6b4526], [0.32, 0xeeeae2], [0.08, SKIN]], legs: [[0.72, 0x1a1a1e], [0.1, BOOT]],
+          },
+          { // Weirdo (Tate Rehklau): Hawaiian shirt, jean shorts. Creeps everyone out.
+            name: 'Weirdo', weirdo: true,
+            hair: { color: 0x2a1f16, style: 'short' },
+            torso: [[0.56, { pattern: 'hawaiian', color: 0x1f7f86 }], [0.06, DENIM_LIGHT]],
+            arms: [[0.24, { pattern: 'hawaiian', color: 0x1f7f86 }], [0.3, SKIN], [0.08, SKIN]],
+            legs: [[0.3, DENIM_LIGHT], [0.42, SKIN], [0.1, SNEAKER]],
           },
         ],
       },
@@ -600,7 +611,16 @@
         cx.fillStyle = '#' + color.toString(16).padStart(6, '0'); cx.fillRect(0, 0, 64, 64);
         const r = (color >> 16) & 255, g = (color >> 8) & 255, b = color & 255;
         cx.fillStyle = 0.3 * r + 0.59 * g + 0.11 * b > 150 ? 'rgba(24,22,26,0.85)' : 'rgba(240,234,220,0.9)';
-        if (pattern === 'stripes') for (let y = 4; y < 64; y += 16) cx.fillRect(0, y, 64, 7);
+        if (pattern === 'hawaiian') { // leaves and hibiscus
+          cx.fillStyle = '#2f6b2a';
+          [[46, 14], [14, 46], [52, 52]].forEach(([x, y]) => { cx.beginPath(); cx.ellipse(x, y, 7, 3, 0.7, 0, 7); cx.fill(); });
+          const flower = (x, y, c) => {
+            cx.fillStyle = c;
+            for (let k = 0; k < 5; k++) { const a = k * 1.2566; cx.beginPath(); cx.arc(x + Math.cos(a) * 4.5, y + Math.sin(a) * 4.5, 3.6, 0, 7); cx.fill(); }
+            cx.fillStyle = '#f5d33a'; cx.beginPath(); cx.arc(x, y, 1.8, 0, 7); cx.fill();
+          };
+          flower(16, 16, '#f2efe4'); flower(44, 36, '#ee7aa0'); flower(20, 52, '#f2efe4');
+        } else if (pattern === 'stripes') for (let y = 4; y < 64; y += 16) cx.fillRect(0, y, 64, 7);
         else for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { cx.beginPath(); cx.arc(8 + x * 16 + (y % 2) * 8, 8 + y * 16, 4, 0, Math.PI * 2); cx.fill(); }
         const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter;
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -719,6 +739,7 @@
       if (spec.name) { tag = makeNameTag(spec.name); tag.position.y = 2.25; tag.visible = false; g.add(tag); }
       g.scale.setScalar(0.94 * (spec.height || 1));
       g.userData = { tag, body, legs, arms, head, phase: Math.random() * 6, speed: 0.8 + Math.random() * 0.5, idle: Math.random() * 2, x: 0, z: 0, tx: 0, tz: 0, yaw: Math.random() * 6, flee: 0, seed: Math.random() * 10 };
+      g.userData.weirdo = !!spec.weirdo;
       return g;
     }
 
@@ -753,7 +774,7 @@
     }
     function scatterPeople(group) { group.userData.people.forEach(placePerson); }
     const NAME_TAG_R = 12; // names fade in when the car is this close
-    function updatePerson(p, dt, t, carLX, carLZ, carMoving) {
+    function updatePerson(p, dt, t, carLX, carLZ, carMoving, threat) {
       const u = p.userData;
       const dcx = u.x - carLX, dcz = u.z - carLZ, dCar = Math.hypot(dcx, dcz);
       if (u.tag) { const a = clamp((NAME_TAG_R - dCar) / 3, 0, 1); u.tag.visible = a > 0; u.tag.material.opacity = a; }
@@ -762,6 +783,10 @@
         const k = 4.5 / Math.max(dCar, 0.1);
         [u.tx, u.tz] = pickSpot(u, u.x + dcx * k, u.z + dcz * k, 1.5);
         u.flee = 1.4; u.idle = 0;
+      }
+      if (threat && u.flee <= 0) { // keep away from the weirdo
+        const ax = u.x - threat.x, az = u.z - threat.z, dT = Math.hypot(ax, az);
+        if (dT < 4.5) { const k = 5 / Math.max(dT, 0.1); [u.tx, u.tz] = pickSpot(u, u.x + ax * k, u.z + az * k, 1.5); u.flee = 1.0; u.idle = 0; }
       }
       u.flee -= dt;
       const dx = u.tx - u.x, dz = u.tz - u.z, dist = Math.hypot(dx, dz);
@@ -904,7 +929,7 @@
     const CHUNK = 220, RW = 7;
     function buildChunkClean(cx, cz) { const g = new THREE.Group(); const wx = cx * CHUNK, wz = cz * CHUNK; const addPlane = (w, d, mat, x, z, y = 0.001) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); g.add(m); }; addPlane(CHUNK, CHUNK, M.ground, wx, wz, 0); addPlane(RW * 2, CHUNK, M.road, wx, wz, 0.004); const armLen = CHUNK / 2 - RW; [-1, 1].forEach(sd => addPlane(armLen, RW * 2, M.road, wx + sd * (RW + armLen / 2), wz, 0.004)); const n = Math.floor(CHUNK / 10); for (let i = -n; i <= n; i++) { if (Math.abs(i * 10) < RW + 1.5) continue; addPlane(0.14, 2.8, M.dash, wx, wz + i * 10, 0.01); addPlane(2.8, 0.14, M.dash, wx + i * 10, wz, 0.01); } const station = buildStation(getSignTex(stationSignId(chunkKey(cx, cz)))); station.position.set(wx + RW + 1, 0, wz + RW + 1); g.add(station); g.userData.signMats = station.userData.signMats; addTrees(g, wx, wz, RW); addStreetlights(g, wx, wz); addStoplight(g, wx, wz); addDeer(g, wx, wz); return g; }
     const chunks = new Map(); const RENDER_R = 1; function chunkKey(cx, cz) { return `${cx},${cz}`; } function updateChunks(px, pz) { const pcx = Math.round(px / CHUNK), pcz = Math.round(pz / CHUNK); for (let cx = pcx - RENDER_R; cx <= pcx + RENDER_R; cx++) for (let cz = pcz - RENDER_R; cz <= pcz + RENDER_R; cz++) { const k = chunkKey(cx, cz); if (!chunks.has(k)) { const c = buildChunkClean(cx, cz); scene.add(c); chunks.set(k, c); } } for (const [k, c] of chunks) { const [cx, cz] = k.split(',').map(Number); if (Math.abs(cx - pcx) > RENDER_R + 1 || Math.abs(cz - pcz) > RENDER_R + 1) { scene.remove(c); c.traverse(o => { if (!o.userData.shared) o.geometry?.dispose(); if (o.userData.ownMat) o.material.dispose(); }); chunks.delete(k); } } }
-    const keys = {}; document.addEventListener('keydown', e => { if (e.target instanceof HTMLInputElement || (e.target.closest && e.target.closest('#builder, #end-card'))) return; if (e.code === 'Space' && !e.repeat) honk(); if (e.code === 'KeyR' && started && !ending && !e.repeat) setRadio(!radioOn); if (e.code === 'KeyM' && started && !e.repeat) setMuted(!soundMuted); keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); }); document.addEventListener('keyup', e => { keys[e.code] = false; });
+    const keys = {}; document.addEventListener('keydown', e => { if (e.target instanceof HTMLInputElement || (e.target.closest && e.target.closest('#builder, #end-card'))) return; if (e.code === 'Space' && !e.repeat) honk(); if (e.code === 'KeyR' && started && !ending && !e.repeat) setRadio(!radioOn); if (e.code === 'KeyM' && started && !e.repeat) setMuted(!soundMuted); if (e.code === 'KeyV' && started && !ending && !e.repeat) setView(!thirdPerson); keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); }); document.addEventListener('keyup', e => { keys[e.code] = false; });
 
     const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
     if (isTouchDevice) {
@@ -1087,6 +1112,25 @@
       src.connect(f); f.connect(g); g.connect(master); src.start(t);
       thud(1);
     }
+    function truckHorn(strength) {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime, v = 0.35 * strength + 0.0001;
+      const f = audioCtx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.05); g.gain.setValueAtTime(v, t + 0.9); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+      f.connect(g); g.connect(master);
+      [155, 196].forEach(fr => { const o = audioCtx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = fr; o.connect(f); o.start(t); o.stop(t + 1.2); });
+    }
+    function crack() {
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime, len = Math.floor(audioCtx.sampleRate * 0.18);
+      const buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 6);
+      const src = audioCtx.createBufferSource(); src.buffer = buf;
+      const f = audioCtx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 900;
+      const g = audioCtx.createGain(); g.gain.value = 1.2;
+      src.connect(f); f.connect(g); g.connect(master); src.start(t);
+    }
     function setMuted(m) {
       soundMuted = m;
       radio.muted = m;
@@ -1160,8 +1204,23 @@
       stageGroups.forEach(g => {
         const lx = carX - g.position.x, lz = carZ - g.position.z;
         if (Math.hypot(lx - 11, lz - 11) > 140) return;
-        g.userData.people.forEach(p => updatePerson(p, dt, t, lx, lz, moving));
+        const people = g.userData.people, weirdo = people.find(p => p.userData.weirdo);
+        if (weirdo) creep(weirdo, people, dt);
+        people.forEach(p => updatePerson(p, dt, t, lx, lz, moving, weirdo && p !== weirdo ? weirdo.userData : null));
       });
+    }
+    // The weirdo creeps after whoever is nearest; now and then he stops and stares.
+    function creep(p, people, dt) {
+      const u = p.userData;
+      u.retarget = (u.retarget || 0) - dt;
+      if (u.retarget > 0 || u.flee > 0) return;
+      u.retarget = 0.6;
+      let best = null, bestD = Infinity;
+      people.forEach(o => { if (o !== p) { const d = Math.hypot(o.userData.x - u.x, o.userData.z - u.z); if (d < bestD) { bestD = d; best = o; } } });
+      if (!best) return;
+      if (Math.random() < 0.12) { u.idle = 1.2 + Math.random(); u.retarget = u.idle; return; } // lurk
+      [u.tx, u.tz] = pickSpot(u, best.userData.x, best.userData.z, 0.5);
+      u.idle = 0; u.speed = 2.3;
     }
     // One forecourt light that hops to whichever station you're nearest, so
     // every lot you pull into is lit without adding lights (and shader recompiles).
@@ -1194,7 +1253,7 @@
     function endSequence() {
       ending = true;
       fadeEl.classList.add('on');
-      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); hint.style.opacity = '0';
+      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); viewBtn.classList.remove('visible'); hint.style.opacity = '0';
       radio.volume = 0.3;
       setTimeout(showEndCard, 1500);
     }
@@ -1229,7 +1288,7 @@
       }
     });
     const startScreen = document.getElementById('start-screen'); const hud = document.getElementById('hud'); const hint = document.getElementById('controls-hint'); const joyLabels = document.querySelectorAll('.joystick-label'); let started = false, hintTimer = 0;
-    startScreen.addEventListener('click', () => { started = true; startScreen.style.display = 'none'; hud.classList.add('visible'); radioBtn.classList.add('visible'); startSound(); setRadio(true); scene.add(carBody); updateChunks(carX, carZ); });
+    startScreen.addEventListener('click', () => { started = true; startScreen.style.display = 'none'; hud.classList.add('visible'); radioBtn.classList.add('visible'); viewBtn.classList.add('visible'); startSound(); setRadio(true); scene.add(carBody); updateChunks(carX, carZ); });
     updateChunks(0, 0);
     activateStage();
 
@@ -1268,6 +1327,15 @@
       const sw = carBody.userData.steeringWheel;
       if (sw) sw.rotation.z = steer * Math.PI * 0.7;
     }
+    // V or the View button: driver's seat, or a chase camera behind the car.
+    let thirdPerson = false, chaseReady = false;
+    const chasePos = new THREE.Vector3(), chaseWant = new THREE.Vector3();
+    const viewBtn = document.getElementById('view-btn');
+    function setView(third) {
+      thirdPerson = third; chaseReady = false;
+      viewBtn.textContent = third ? 'View: 3rd' : 'View: 1st';
+    }
+    viewBtn.addEventListener('click', e => { setView(!thirdPerson); e.currentTarget.blur(); });
     function placeCamera(dt) {
       const spd = Math.abs(carSpeed), fast = spd / MAX_SPEED;
       const fwdX = -Math.sin(carHeading), fwdZ = -Math.cos(carHeading);
@@ -1280,6 +1348,13 @@
       camera.rotation.y = carHeading + lookYaw + steer * 0.12 * rumbleAmt;              // glance into the turn
       camera.rotation.x = lookPitch + clamp(accelFelt * 0.003, -0.04, 0.03);         // dip braking, lift accelerating
       camera.rotation.z = -steer * 0.035 * Math.min(1, spd / 8) * Math.sign(carSpeed); // body leans out of the turn
+      if (thirdPerson) { // behind and above; look-around swings the camera round the car
+        const yaw = carHeading + lookYaw;
+        chaseWant.set(carX + Math.sin(yaw) * 7.5, 3.2 - lookPitch * 3, carZ + Math.cos(yaw) * 7.5);
+        if (!chaseReady) { chasePos.copy(chaseWant); chaseReady = true; } else chasePos.lerp(chaseWant, 1 - Math.exp(-dt * 6));
+        camera.position.copy(chasePos);
+        camera.lookAt(carX + fwdX * 4, 1.2, carZ + fwdZ * 4);
+      }
       const fov = BASE_FOV + FOV_GAIN * fast;
       if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
       if (shake > 0.002) { // frog landings, explosions
@@ -1298,7 +1373,7 @@
     // around, hops again. Stay within FROG_NEAR of it for FROG_PATIENCE seconds and
     // it turns to stare, then eats you.
     const FROG_SCALE = 13, FROG_NEAR = 60, FROG_PATIENCE = 10, FROG_STARE = 4;
-    const FROG_HOP = 80, FROG_HOP_TIME = 3.4, FROG_HOP_HEIGHT = 30;
+    const FROG_HOP = 63, FROG_HOP_TIME = 3.4, FROG_HOP_HEIGHT = 30; // with ~1 s pauses: ~80% of the car's top speed
     let shake = 0;   // camera shake, decays in placeCamera
     let carLift = 0; // how far the tongue has lifted the car
     // Thinner fog on the frog so it looms out of the murk instead of vanishing.
@@ -1392,7 +1467,7 @@
           const s = Math.max(0, 1 - dCar / 220);
           shake = Math.max(shake, 0.55 * s);
           thud(s);
-          frog.state = 'look'; frog.t = 2.5 + Math.random() * 2; frog.look = Math.random() * 6;
+          frog.state = 'look'; frog.t = 0.8 + Math.random() * 0.5; frog.look = Math.random() * 6;
           if (Math.random() < 0.4) croak(s);
         }
       } else if (staring) {
@@ -1405,7 +1480,10 @@
         u.head.rotation.y = Math.sin(frog.look * 1.3) * 0.55;
         if (frog.t <= 0) {
           frog.fromX = frog.x; frog.fromZ = frog.z;
-          frog.toX = frog.x + frog.dirX * FROG_HOP; frog.toZ = frog.z + frog.dirZ * FROG_HOP;
+          const cdx = carX - frog.x, cdz = carZ - frog.z, cd = Math.hypot(cdx, cdz) || 1; // hop at the car
+          frog.dirX = cdx / cd; frog.dirZ = cdz / cd;
+          const hop = clamp(cd - 10, 20, FROG_HOP);
+          frog.toX = frog.x + frog.dirX * hop; frog.toZ = frog.z + frog.dirZ * hop;
           frog.state = 'hop'; frog.t = FROG_HOP_TIME; u.head.rotation.y = 0;
         }
       }
@@ -1413,13 +1491,163 @@
     }
     // Tongue out, car in, "you died".
     const mouth = new THREE.Vector3(), tongueTip = new THREE.Vector3(), tongueDir = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
+
+    // ---- The truck ------------------------------------------------------------------------
+    // Between the third and fourth stations a big rig comes at you head-on out of the
+    // fog and hunts you. It tops out at 90% of your top speed. If it touches you, both
+    // stop, the trucker gets out, pulls you from the car and breaks your back over his knee.
+    const TRUCK_SPEED = 0.9 * MAX_SPEED, TRUCK_HALF_LEN = 7, TRUCK_HIT = 2.6;
+    const TRUCKER = { // Erik Aude
+      name: 'Trucker', height: 1.12, hair: { color: 0x221a14, style: 'buzz' },
+      torso: [[0.56, 0x141416], [0.06, DENIM]], arms: [[0.62, SKIN]], legs: [[0.72, DENIM], [0.1, BOOT]],
+    };
+    const DRIVER = { // used when the player hasn't built a character on this device
+      hair: { color: HAIR_BROWN, style: 'short' },
+      torso: [[0.56, 0x2b2b31], [0.06, DENIM]], arms: [[0.54, 0x2b2b31], [0.08, SKIN]], legs: [[0.72, DENIM], [0.1, SNEAKER]],
+    };
+    function buildTruck() {
+      const g = new THREE.Group();
+      const box = (w, h, d, color, x, y, z, glow) => {
+        const mat = glow ? new THREE.MeshBasicMaterial({ color, fog: false, toneMapped: false }) : new THREE.MeshLambertMaterial({ color });
+        const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); o.position.set(x, y, z); g.add(o); return o;
+      };
+      // Faces +z: trailer at the back, cab and hood at the front.
+      box(2.6, 3.4, 9, 0x8a8a86, 0, 2.6, -2.2);   // trailer
+      box(2.6, 0.3, 9, 0x2a2a2a, 0, 0.85, -2.2);  // trailer bed
+      box(2.6, 2.6, 2.6, 0x5a1a14, 0, 2.1, 3.6);  // cab
+      box(2.4, 0.9, 0.1, 0x1b2330, 0, 2.7, 4.92); // windshield
+      box(2.4, 1.3, 1.8, 0x5a1a14, 0, 1.45, 5.8); // hood
+      box(2.2, 1.0, 0.08, 0x1a1a1a, 0, 1.45, 6.72); // grille
+      box(2.7, 0.35, 0.3, 0xb8b8b0, 0, 0.75, 6.85); // bumper
+      [-0.85, 0.85].forEach(x => box(0.45, 0.3, 0.06, 0xfff2c0, x, 1.4, 6.76, true)); // headlights glow through the fog
+      [-1.05, 1.05].forEach(x => box(0.18, 1.6, 0.18, 0xb8b8b0, x, 3.9, 2.4));        // exhaust stacks
+      const wheelGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.45, 14).rotateZ(Math.PI / 2);
+      const wheelMat = new THREE.MeshLambertMaterial({ color: 0x121212 });
+      [5.4, 2.8, -3.6, -5.2].forEach(z => [-1.2, 1.2].forEach(x => { const w = new THREE.Mesh(wheelGeo, wheelMat); w.position.set(x, 0.55, z); g.add(w); }));
+      // Headlight pool on the road ahead (no real light: adding one recompiles every shader).
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(4, 20), new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+      pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.03, 12); g.add(pool);
+      return g;
+    }
+    const truck = { obj: null, state: 'off', x: 0, z: 0, heading: 0, speed: 0, honkT: 0, death: null };
+    function truckSpawn() {
+      if (!truck.obj) { truck.obj = buildTruck(); scene.add(truck.obj); }
+      const fx = -Math.sin(carHeading), fz = -Math.cos(carHeading), lx = -Math.cos(carHeading), lz = Math.sin(carHeading);
+      truck.x = carX + fx * 190 + lx * 3.5; truck.z = carZ + fz * 190 + lz * 3.5; // ahead, in the oncoming lane
+      truck.heading = Math.atan2(-fx, -fz); // facing you (truck forward is sin/cos of heading)
+      truck.speed = TRUCK_SPEED * 0.8; truck.honkT = 0; truck.state = 'drive';
+      truck.obj.visible = true;
+    }
+    function updateTruck(dt) {
+      if (truck.death) { updateTruckDeath(dt); return; }
+      const active = stage === 3 && !ending;
+      if (truck.state === 'off') { if (!active) return; truckSpawn(); }
+      const dx = carX - truck.x, dz = carZ - truck.z, d = Math.hypot(dx, dz);
+      if (d > 260) {
+        if (active) truckSpawn();
+        else { truck.obj.visible = false; truck.state = 'off'; }
+        return;
+      }
+      if (!ending) { // steer at the car; a truck can't turn on a dime
+        let dy = Math.atan2(dx, dz) - truck.heading; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+        truck.heading += clamp(dy, -0.9 * dt, 0.9 * dt);
+        truck.speed = Math.min(TRUCK_SPEED, truck.speed + 6 * dt);
+      } else truck.speed = Math.max(0, truck.speed - 20 * dt);
+      const fx = Math.sin(truck.heading), fz = Math.cos(truck.heading);
+      truck.x += fx * truck.speed * dt; truck.z += fz * truck.speed * dt;
+      truck.obj.position.set(truck.x, 0, truck.z);
+      truck.obj.rotation.y = truck.heading;
+      if (ending) return;
+      truck.honkT -= dt;
+      if (d < 70 && truck.honkT <= 0) { truckHorn(Math.max(0.25, 1 - d / 70)); truck.honkT = 2.5 + Math.random() * 2; }
+      // Hit: the car's centre within reach of the truck's centre line.
+      const rx = carX - truck.x, rz = carZ - truck.z;
+      const along = clamp(rx * fx + rz * fz, -TRUCK_HALF_LEN, TRUCK_HALF_LEN);
+      if (Math.hypot(rx - fx * along, rz - fz * along) < TRUCK_HIT) startTruckDeath();
+    }
+
+    const tmpV = new THREE.Vector3();
+    function startTruckDeath() {
+      ending = true;
+      carSpeed = 0; truck.speed = 0;
+      shake = 0.7; thud(1); truckHorn(1);
+      const cf = { x: -Math.sin(carHeading), z: -Math.cos(carHeading) }, cl = { x: -Math.cos(carHeading), z: Math.sin(carHeading) };
+      const tf = { x: Math.sin(truck.heading), z: Math.cos(truck.heading) }, ts = { x: Math.cos(truck.heading), z: -Math.sin(truck.heading) };
+      const door = { x: carX + cl.x * 2.2, z: carZ + cl.z * 2.2 };                                    // outside the driver's door
+      const cabDoor = { x: truck.x + tf.x * 3.6 + ts.x * 1.9, z: truck.z + tf.z * 3.6 + ts.z * 1.9 }; // truck's cab door
+      const trucker = buildPerson(TRUCKER);
+      trucker.position.set(cabDoor.x, 0, cabDoor.z);
+      if (trucker.userData.tag) trucker.userData.tag.visible = true;
+      scene.add(trucker);
+      let saved = null;
+      try { saved = JSON.parse(localStorage.getItem('so-character') || 'null'); } catch {}
+      const driver = buildPerson(saved && saved.config ? specFromConfig(sanitizeConfig(saved.config)) : DRIVER);
+      driver.visible = false;
+      // The driver hangs from a two-level pivot at the waist, so the same rig can
+      // go from sitting upright to lying face-up across the trucker's knee.
+      const holdOuter = new THREE.Group(), holdInner = new THREE.Group();
+      holdOuter.add(holdInner); holdInner.add(driver);
+      driver.position.y = -0.84 * driver.scale.y;
+      scene.add(holdOuter);
+      truck.death = { t: 0, trucker, driver, holdOuter, holdInner, door, cabDoor, cf, cl, seat: { x: carX + cl.x * 0.3, z: carZ + cl.z * 0.3 }, shot2: false, cracked: false, done: false };
+      // Wide, side-on shot of the crash.
+      const mx = (carX + truck.x) / 2, mz = (carZ + truck.z) / 2;
+      startDeathCam(v => v.set(mx + cl.x * 16 - cf.x * 4, 6, mz + cl.z * 16 - cf.z * 4), v => v.set(mx, 1.2, mz), 1.0);
+    }
+    function updateTruckDeath(dt) {
+      const e = truck.death, tr = e.trucker, tu = tr.userData;
+      e.t += dt;
+      carSpeed = 0;
+      const OUT = 0.7, WALK_END = 2.8, PULL_END = 3.6, SNAP = 4.1;
+      if (e.t >= OUT && e.t < WALK_END) { // climb down and walk over
+        const k = (e.t - OUT) / (WALK_END - OUT);
+        tr.position.set(e.cabDoor.x + (e.door.x - e.cabDoor.x) * k, 0, e.cabDoor.z + (e.door.z - e.cabDoor.z) * k);
+        tr.rotation.y = Math.atan2(e.door.x - e.cabDoor.x, e.door.z - e.cabDoor.z);
+        tu.phase += dt * 2.6 * 5.5;
+        const sw = Math.sin(tu.phase) * 0.55;
+        tu.legs[0].rotation.x = sw; tu.legs[1].rotation.x = -sw;
+        tu.arms[0].rotation.x = -sw * 0.8; tu.arms[1].rotation.x = sw * 0.8;
+      }
+      if (e.t < WALK_END) return;
+      if (!e.shot2) { // closer three-quarter shot at the door
+        e.shot2 = true;
+        const d = e.door, cf = e.cf, cl = e.cl;
+        startDeathCam(v => v.set(d.x + cf.x * 6 + cl.x * 4, 2.6, d.z + cf.z * 6 + cl.z * 4), v => v.set(d.x, 1.1, d.z), 0.7);
+        tu.legs.forEach(l => { l.rotation.x = 0; });
+        // Hide the driver's hands on the wheel: they're being pulled out.
+        const wheel = carBody.userData.steeringWheel;
+        if (wheel) wheel.children.forEach(c => { if (c.material === pmat(SKIN)) c.visible = false; });
+      }
+      tr.position.set(e.door.x, 0, e.door.z);
+      tr.rotation.y = Math.atan2(e.cf.x, e.cf.z); // side-on to the camera
+      const reach = clamp((e.t - WALK_END) / 0.4, 0, 1);
+      if (!e.cracked) tu.arms.forEach(a => { a.rotation.x = -1.3 * reach; });
+      tu.legs[1].rotation.x = -1.45 * clamp((e.t - (PULL_END - 0.35)) / 0.35, 0, 1); // knee up
+      // Pull the driver from the seat and lay them face-up across the raised knee.
+      e.driver.visible = true;
+      tr.updateMatrixWorld(true);
+      const knee = tr.localToWorld(tmpV.set(0.125, 1.05, 0.42));
+      const k = clamp((e.t - WALK_END) / (PULL_END - WALK_END), 0, 1), ease = k * k * (3 - 2 * k);
+      e.holdOuter.position.set(e.seat.x + (knee.x - e.seat.x) * ease, 0.9 + (knee.y - 0.9) * ease, e.seat.z + (knee.z - e.seat.z) * ease);
+      e.holdOuter.rotation.y = tr.rotation.y;
+      e.holdInner.rotation.set(-Math.PI / 2 * ease, 0, -Math.PI / 2 * ease);
+      if (e.t >= SNAP && !e.cracked) { e.cracked = true; crack(); shake = 0.8; }
+      if (e.cracked) { // the break: legs and head fold down, his arms drive down
+        const s = clamp((e.t - SNAP) / 0.12, 0, 1), du = e.driver.userData;
+        du.legs.forEach(l => { l.rotation.x = 1.25 * s; });
+        du.head.rotation.x = -1.1 * s;
+        tu.arms.forEach(a => { a.rotation.x = -1.3 + 0.6 * s; });
+      }
+      if (e.t >= SNAP + 1.4 && !e.done) { e.done = true; deathSequence(); }
+    }
+
     // ---- Death camera ------------------------------------------------------------------
     // On any death the camera leaves the driver's seat and eases out to where you
     // can watch it happen. pos/look fill a vector each frame, so shots can track.
     let deathCam = null;
     const camTarget = new THREE.Vector3(), lookTarget = new THREE.Vector3(), camAim = new THREE.PerspectiveCamera();
     function startDeathCam(pos, look, duration) {
-      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); hint.style.opacity = '0';
+      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); viewBtn.classList.remove('visible'); hint.style.opacity = '0';
       deathCam = { t: 0, duration, fromPos: camera.position.clone(), fromQuat: camera.quaternion.clone(), pos, look };
     }
     function updateDeathCam(dt) {
@@ -1557,7 +1785,7 @@
       if (boom.t > BOOM_AT + 1.4 && !boom.done) { boom.done = true; deathSequence(); }
     }
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); updateDeathCam(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateTruck(dt); updateBoom(dt); updateDeathCam(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
 
     // ---- Community characters -------------------------------------------------------
     // Players build these at the end of the game; the worker stores them and the
