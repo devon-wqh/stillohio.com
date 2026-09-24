@@ -222,6 +222,8 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
   (() => {
+    const OFF = new Set((new URLSearchParams(location.search).get('off') || '').split(',').filter(Boolean));
+    if (OFF.has('overlays')) ['flash', 'died'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
     const renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1));
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -711,7 +713,7 @@
       addHair(head, spec.hair);
       if (spec.glasses) addGlasses(head);
       let tag = null;
-      if (spec.name) { tag = makeNameTag(spec.name); tag.position.y = 2.25; tag.visible = false; g.add(tag); }
+      if (spec.name && !OFF.has('tags')) { tag = makeNameTag(spec.name); tag.position.y = 2.25; tag.visible = false; g.add(tag); }
       g.scale.setScalar(0.94 * (spec.height || 1));
       g.userData = { tag, body, legs, arms, head, phase: Math.random() * 6, speed: 0.8 + Math.random() * 0.5, idle: Math.random() * 2, x: 0, z: 0, tx: 0, tz: 0, yaw: Math.random() * 6, flee: 0, seed: Math.random() * 10 };
       return g;
@@ -889,6 +891,7 @@
       return deerGeo;
     }
     function addDeer(g, wx, wz) {
+      if (OFF.has('deer')) return;
       const shoulder = RW - 1.8;
       const onNS = new THREE.Mesh(getDeerGeo(), deerMat); // road running along z; legs toward the centre line
       onNS.position.set(wx - shoulder, 0, wz + CHUNK / 2); onNS.rotation.y = Math.PI / 2;
@@ -968,6 +971,7 @@
     // context starts on the "click to enter" gesture (browsers require one).
     let audioCtx = null, master = null, engine = null, soundMuted = false, throttleNow = 0;
     function startSound() {
+      if (OFF.has('sound')) return;
       if (audioCtx) { audioCtx.resume(); return; }
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
@@ -1473,8 +1477,7 @@
       boomSound();
       shake = 1.4;
       const flash = document.getElementById('flash');
-      flash.classList.add('on');
-      setTimeout(() => flash.classList.remove('on'), 120);
+      if (flash) { flash.classList.add('on'); setTimeout(() => flash.classList.remove('on'), 120); }
       carBody.visible = false;
       const fire = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
       fire.position.set(carX, 1, carZ);
@@ -1587,7 +1590,7 @@
         } catch (err) { console.warn('[Still Ohio] skipped a character', err); }
       });
     }
-    fetch('/api/characters').then(r => (r.ok ? r.json() : null)).then(d => { if (d && d.characters) addCommunity(d.characters); }).catch(() => {});
+    if (!OFF.has('community')) fetch('/api/characters').then(r => (r.ok ? r.json() : null)).then(d => { if (d && d.characters) addCommunity(d.characters); }).catch(() => {});
 
     // ---- End card: upcoming screenings ------------------------------------------------
     const escHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
