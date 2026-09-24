@@ -120,29 +120,11 @@ const CHARACTER_CHOICES = {
 const CHARACTER_PALETTE_SIZES = { shirtColor: 8, pantsColor: 6, hairColor: 8, skin: 6 };
 const CHARACTERS_SHOWN = 24; // newest visible characters loaded into the game
 
-// Names are public, so screen them. Short words are matched as whole words
-// (they hide inside innocent names like Cassidy or Dickens); the unambiguous
-// ones are matched anywhere, including across spaces. Common letter swaps
-// (0→o, 1→i, 3→e, 4/@→a, 5/$→s, 7→t) are undone first.
-const BLOCKED_WORDS = ['ass', 'dick', 'cock', 'cum', 'sex', 'rape', 'spic', 'chink', 'coon', 'homo', 'tit', 'tits', 'nazi', 'hitler', 'kkk', 'jizz'];
-const BLOCKED_PARTS = ['fuck', 'shit', 'cunt', 'nigg', 'fag', 'retard', 'whore', 'slut', 'bitch', 'bastard', 'asshole', 'pussy', 'penis', 'vagina', 'porn', 'dildo', 'kike', 'tranny', 'wank', 'twat', 'molest', 'pedo'];
-
-function nameIsBlocked(name) {
-  const norm = name.toLowerCase()
-    .replace(/0/g, 'o').replace(/[@4]/g, 'a').replace(/[1!|]/g, 'i')
-    .replace(/3/g, 'e').replace(/[5$]/g, 's').replace(/7/g, 't');
-  const words = norm.split(/[^a-z]+/).filter(Boolean);
-  if (words.some(w => BLOCKED_WORDS.includes(w))) return true;
-  const squashed = words.join('');
-  return BLOCKED_PARTS.some(p => squashed.includes(p));
-}
-
 function readCharacter(body) {
   const name = typeof body.name === 'string' ? body.name.trim().replace(/\s+/g, ' ') : '';
   const email = typeof body.email === 'string' ? body.email.trim() : '';
   if (!name || name.length > 20) return { error: 'Your name needs to be 1–20 characters.' };
   if (!/^[\p{L}\p{N} .'’\-!?&]+$/u.test(name)) return { error: 'Letters, numbers and simple punctuation only in the name.' };
-  if (nameIsBlocked(name)) return { error: "Let's pick a different name." };
   if (!EMAIL_RE.test(email) || email.length > 254) return { error: 'A valid email is required.' };
 
   const c = body.config && typeof body.config === 'object' ? body.config : {};
