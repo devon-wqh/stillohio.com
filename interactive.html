@@ -1405,9 +1405,34 @@
     }
     // Tongue out, car in, "you died".
     const mouth = new THREE.Vector3(), tongueTip = new THREE.Vector3(), tongueDir = new THREE.Vector3(), yAxis = new THREE.Vector3(0, 1, 0);
+    // ---- Death camera ------------------------------------------------------------------
+    // On any death the camera leaves the driver's seat and eases out to where you
+    // can watch it happen. pos/look fill a vector each frame, so shots can track.
+    let deathCam = null;
+    const camTarget = new THREE.Vector3(), lookTarget = new THREE.Vector3(), camAim = new THREE.PerspectiveCamera();
+    function startDeathCam(pos, look, duration) {
+      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); hint.style.opacity = '0';
+      deathCam = { t: 0, duration, fromPos: camera.position.clone(), fromQuat: camera.quaternion.clone(), pos, look };
+    }
+    function updateDeathCam(dt) {
+      if (!deathCam) return;
+      const c = deathCam;
+      c.t += dt;
+      const k = Math.min(1, c.t / c.duration), ease = k * k * (3 - 2 * k);
+      c.pos(camTarget); c.look(lookTarget);
+      camera.position.lerpVectors(c.fromPos, camTarget, ease);
+      camAim.position.copy(camera.position); camAim.lookAt(lookTarget);
+      camera.quaternion.slerpQuaternions(c.fromQuat, camAim.quaternion, ease);
+      if (shake > 0.002) {
+        camera.position.x += (Math.random() - 0.5) * shake;
+        camera.position.y += (Math.random() - 0.5) * shake * 0.7;
+        camera.position.z += (Math.random() - 0.5) * shake;
+      }
+    }
+
     function startEat() {
       ending = true;
-      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); hint.style.opacity = '0';
+      carSpeed = 0;
       if (!frog.tongue) {
         const mat = new THREE.MeshLambertMaterial({ color: 0xc4566a, emissive: 0x3a0c14 });
         const strand = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.6, 1, 12, 1, true), mat);
@@ -1415,7 +1440,13 @@
         frog.tongue = { strand, tip };
         scene.add(strand, tip);
       }
-      frog.eat = { t: 0, camFrom: camera.position.clone(), carFromX: carX, carFromZ: carZ, done: false };
+      frog.tongue.strand.visible = frog.tongue.tip.visible = false;
+      frog.eat = { t: 0, carFromX: carX, carFromZ: carZ, done: false };
+      // Pull back and off to one side so the car and the frog's head share the frame;
+      // the shot tracks the car as it's dragged up toward the mouth.
+      const dx = frog.x - carX, dz = frog.z - carZ, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
+      const camX = carX - ux * 22 - uz * 12, camZ = carZ - uz * 22 + ux * 12;
+      startDeathCam(v => v.set(camX, 9, camZ), v => v.set(carX, 1 + carLift, carZ).lerp(mouth, 0.45), 1.0);
       croak(1);
     }
     function updateEat(dt) {
@@ -1427,23 +1458,28 @@
       o.rotation.y = frog.yaw;
       o.updateMatrixWorld(true);
       o.userData.head.localToWorld(mouth.set(0, -0.18, 1.1));
-      const SHOOT = 0.35, PULL = 1.7;
-      if (e.t < SHOOT) {
-        const k = e.t / SHOOT;
+      const OUT = 1.0, SHOOT = 0.35, PULL = 1.7; // camera out, tongue out, car in
+      const { strand, tip } = frog.tongue;
+      if (e.t < OUT) return;
+      strand.visible = tip.visible = true;
+      if (e.t < OUT + SHOOT) {
+        const k = (e.t - OUT) / SHOOT;
         tongueTip.set(e.carFromX, 1, e.carFromZ).sub(mouth).multiplyScalar(k).add(mouth);
       } else {
-        const k = Math.min(1, (e.t - SHOOT) / PULL), kk = k * k;
-        carBody.visible = false; // first person: just the mouth rushing in
+        const k = Math.min(1, (e.t - OUT - SHOOT) / PULL), kk = k * k;
         carX = e.carFromX + (mouth.x - e.carFromX) * kk;
         carZ = e.carFromZ + (mouth.z - e.carFromZ) * kk;
         carLift = (mouth.y - 1) * kk;
+        carBody.rotation.x = 0.6 * kk; carBody.rotation.z = 0.9 * kk; // tumbling as it goes
         tongueTip.set(carX, 1 + carLift, carZ);
-        camera.position.lerpVectors(e.camFrom, mouth, kk * 0.97);
-        camera.lookAt(mouth);
-        shake = Math.max(shake, 0.05);
-        if (k >= 1 && !e.done) { e.done = true; deathSequence(); }
+        shake = Math.max(shake, 0.04);
+        if (k >= 1 && !e.done) {
+          e.done = true;
+          carBody.visible = false; strand.visible = tip.visible = false; // swallowed
+          thud(0.8);
+          deathSequence();
+        }
       }
-      const { strand, tip } = frog.tongue;
       tongueDir.subVectors(tongueTip, mouth);
       const len = Math.max(0.01, tongueDir.length());
       strand.position.copy(mouth).addScaledVector(tongueDir, 0.5);
@@ -1456,6 +1492,7 @@
     // Space or the HONK button. Three honks inside five seconds blows up the car.
     const honkTimes = [];
     let boom = null;
+    const BOOM_AT = 0.8; // camera is out of the car by then
     function honk() {
       if (!started || ending) return;
       horn();
@@ -1466,34 +1503,41 @@
     }
     function explode() {
       ending = true;
-      hud.classList.remove('visible'); radioBtn.classList.remove('visible'); hint.style.opacity = '0';
+      carSpeed = 0;
+      // Back and up, a little to the side, looking at the car.
+      const fx = -Math.sin(carHeading), fz = -Math.cos(carHeading), lx = -Math.cos(carHeading), lz = Math.sin(carHeading);
+      const x = carX, z = carZ, camX = x - fx * 7 + lx * 3.5, camZ = z - fz * 7 + lz * 3.5;
+      startDeathCam(v => v.set(camX, 3.2, camZ), v => v.set(x, 1, z), BOOM_AT);
+      boom = { t: 0, x, z, blown: false, done: false, fire: null, debris: [] };
+    }
+    function blowUp() {
       boomSound();
-      shake = 1.4;
+      shake = 1.2;
       const flash = document.getElementById('flash');
-      if (flash) { flash.classList.add('on'); setTimeout(() => flash.classList.remove('on'), 120); }
+      if (flash) { flash.classList.add('on'); setTimeout(() => flash.classList.remove('on'), 90); }
       carBody.visible = false;
-      const fire = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-      fire.position.set(carX, 1, carZ);
-      scene.add(fire);
+      boom.fire = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+      boom.fire.position.set(boom.x, 1, boom.z);
+      scene.add(boom.fire);
       const scrapColours = [0x34343c, 0x7a4615, 0x2a2a34, 0x342830, 0xff5800];
-      const debris = Array.from({ length: 16 }, (_, i) => {
+      boom.debris = Array.from({ length: 16 }, (_, i) => {
         const d = new THREE.Mesh(new THREE.BoxGeometry(0.3 + Math.random() * 0.6, 0.1 + Math.random() * 0.3, 0.3 + Math.random() * 0.8),
           new THREE.MeshLambertMaterial({ color: scrapColours[i % scrapColours.length], emissive: 0x401000 }));
-        d.position.set(carX, 1, carZ);
+        d.position.set(boom.x, 1, boom.z);
         const a = Math.random() * Math.PI * 2, up = 8 + Math.random() * 10, out = 6 + Math.random() * 10;
         d.userData.v = new THREE.Vector3(Math.cos(a) * out, up, Math.sin(a) * out);
         d.userData.spin = new THREE.Vector3(Math.random() * 8, Math.random() * 8, Math.random() * 8);
         scene.add(d);
         return d;
       });
-      boom = { t: 0, fire, debris, done: false, roll: (Math.random() < 0.5 ? -1 : 1) * (1.5 + Math.random()) };
     }
     function updateBoom(dt) {
       if (!boom) return;
       boom.t += dt;
       carSpeed = 0;
-      const k = Math.min(1, boom.t / 0.8);
-      boom.fire.scale.setScalar(1 + 14 * Math.sqrt(k));
+      if (!boom.blown) { if (boom.t >= BOOM_AT) { boom.blown = true; blowUp(); } return; }
+      const k = Math.min(1, (boom.t - BOOM_AT) / 0.8);
+      boom.fire.scale.setScalar(1 + 9 * Math.sqrt(k));
       boom.fire.material.opacity = 0.95 * (1 - k);
       boom.fire.material.color.setHSL(0.08 - 0.05 * k, 1, 0.6 - 0.3 * k);
       boom.debris.forEach(d => {
@@ -1502,15 +1546,10 @@
         if (d.position.y < 0.15) { d.position.y = 0.15; d.userData.v.multiplyScalar(0.4); d.userData.v.y *= -0.5; }
         d.rotation.x += d.userData.spin.x * dt; d.rotation.y += d.userData.spin.y * dt; d.rotation.z += d.userData.spin.z * dt;
       });
-      // Thrown up and spinning.
-      carLift = Math.max(0, Math.min(7, 14 * boom.t - 6 * boom.t * boom.t));
-      camera.position.y += carLift;
-      camera.rotation.z += boom.roll * boom.t;
-      camera.rotation.x -= 0.6 * boom.t;
-      if (boom.t > 1.0 && !boom.done) { boom.done = true; deathSequence(); }
+      if (boom.t > BOOM_AT + 1.4 && !boom.done) { boom.done = true; deathSequence(); }
     }
     let last = 0;
-    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
+    function loop(t) { requestAnimationFrame(loop); const dt = Math.min((t - last) / 1000, 0.05); last = t; if (paused) return; if (started) { const steerInput = ending ? 0 : clamp(((keys['ArrowLeft'] ? 1 : 0) - (keys['ArrowRight'] ? 1 : 0)) - joyDrive.x, -1, 1); const throttleInput = ending ? 0 : clamp(((keys['ArrowUp'] ? 1 : 0) - (keys['ArrowDown'] ? 1 : 0)) - joyDrive.y, -1, 1); const lookXInput = ending ? 0 : clamp(((keys['KeyA'] ? 1 : 0) - (keys['KeyD'] ? 1 : 0)) - joyLook.x, -1, 1); const lookYInput = ending ? 0 : clamp(((keys['KeyW'] ? 1 : 0) - (keys['KeyS'] ? 1 : 0)) - joyLook.y, -1, 1); drive(dt, steerInput, throttleInput); updateSound(); lookYaw += LOOK_SPD * dt * lookXInput; lookPitch = clamp(lookPitch + LOOK_SPD * dt * lookYInput, -0.55, 0.45); carX -= Math.sin(carHeading) * carSpeed * dt; carZ -= Math.cos(carHeading) * carSpeed * dt; placeCamera(dt); updateFrog(dt); updateBoom(dt); updateDeathCam(dt); carBody.position.set(carX, carLift, carZ); carBody.rotation.y = carHeading; syncHeadlights(); hintTimer += dt; if (hintTimer > 3) joyLabels.forEach(l => l.style.opacity = '0'); if (hintTimer > 6) hint.style.opacity = '0'; updateChunks(carX, carZ); updateStages(); } placeCanopyLight(); updatePeople(dt, t / 1000); updatePortal(dt, t / 1000); radioScreen.update(dt, radioOn ? (radioOk ? 'WEIRD — HANA EID' : '101.9 FM') : 'OFF', radioOn && radioOk); renderer.render(scene, camera); }
 
     // ---- Community characters -------------------------------------------------------
     // Players build these at the end of the game; the worker stores them and the
