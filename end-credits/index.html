@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>End Credits</title>
+  <meta name="description" content="End Credits — a film and arts magazine. (Design mockup)" />
+  <meta name="robots" content="noindex" />
+  <style>
+    :root {
+      --bg: #232323;          /* charcoal, like the black of a credit roll */
+      --bg-raised: #2c2c2c;
+      --fg: #ffffff;
+      --fg-dim: #a9a9a9;
+      --rule: #ffffff;
+      --hair: #4a4a4a;
+      --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --max: 1180px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--fg); }
+    body {
+      font-family: var(--font);
+      font-size: 17px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+
+    /* ---------- Masthead ---------- */
+    .masthead { text-align: center; padding: 56px 0 28px; }
+    .logo {
+      display: inline-block;
+      font-weight: 700;
+      font-size: clamp(48px, 9vw, 112px);
+      letter-spacing: -0.035em;
+      line-height: 0.95;
+    }
+    .tagline {
+      margin-top: 14px;
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--fg-dim);
+    }
+
+    /* ---------- Section banner ---------- */
+    .banner {
+      border-top: 2px solid var(--rule);
+      border-bottom: 2px solid var(--rule);
+      position: sticky; top: 0; z-index: 10;
+      background: var(--bg);
+    }
+    .banner ul {
+      list-style: none; margin: 0 auto; padding: 0;
+      display: flex; justify-content: center;
+      max-width: var(--max);
+    }
+    .banner li { flex: 0 1 220px; }
+    .banner li + li { border-left: 1px solid var(--hair); }
+    .banner a {
+      display: block; text-align: center;
+      padding: 14px 8px;
+      font-weight: 700; font-size: 14px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .banner a:hover { background: var(--bg-raised); }
+    .banner a[aria-current="page"] { background: var(--fg); color: var(--bg); }
+
+    /* ---------- Shared ---------- */
+    main.wrap { padding-top: 56px; padding-bottom: 96px; }
+    .view[hidden] { display: none; }
+    .kicker {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+    }
+    .dim { color: var(--fg-dim); }
+    .section-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      border-bottom: 1px solid var(--hair);
+      padding-bottom: 10px; margin-bottom: 32px;
+    }
+    .section-head h2 { margin: 0; font-size: 14px; letter-spacing: 0.18em; text-transform: uppercase; }
+
+    /* Flat "still" placeholders: solid blocks with a frame caption */
+    .still {
+      position: relative; aspect-ratio: 16 / 9;
+      background: var(--tone, #3a3a3a);
+      display: flex; align-items: flex-end;
+      padding: 14px 16px;
+    }
+    .still span {
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* ---------- Latest ---------- */
+    .lead {
+      display: grid; grid-template-columns: 1.35fr 1fr; gap: 40px;
+      align-items: end;
+      padding-bottom: 48px; margin-bottom: 48px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .lead h3 {
+      font-size: clamp(34px, 4.6vw, 58px);
+      line-height: 1.02; letter-spacing: -0.025em;
+      margin: 14px 0 18px;
+    }
+    .dek { font-size: 19px; line-height: 1.45; margin: 0 0 22px; }
+    .byline { font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; }
+    .card h3 {
+      font-size: 28px; line-height: 1.1; letter-spacing: -0.015em;
+      margin: 16px 0 10px;
+    }
+    .card .dek { font-size: 16px; margin-bottom: 14px; }
+    .card:hover h3, .lead:hover h3 { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
+
+    /* ---------- Article ---------- */
+    .article { max-width: 720px; margin: 0 auto; }
+    .article header { text-align: center; margin-bottom: 40px; }
+    .article h1 {
+      font-size: clamp(36px, 5.4vw, 64px);
+      line-height: 1.02; letter-spacing: -0.025em;
+      margin: 16px 0 20px;
+    }
+    .article .still { margin: 0 -40px 40px; }
+    .article .body p { font-size: 19px; line-height: 1.65; margin: 0 0 1.2em; }
+    .article .body p:first-child::first-letter {
+      float: left; font-weight: 700; font-size: 64px; line-height: 0.9;
+      padding: 6px 10px 0 0;
+    }
+    .article .body h4 {
+      font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase;
+      margin: 2.2em 0 1em;
+    }
+    .article .body .q { font-weight: 700; }
+    .pull {
+      border-top: 2px solid var(--rule); border-bottom: 2px solid var(--rule);
+      padding: 22px 0; margin: 2em 0;
+      font-size: 28px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em;
+      text-align: center;
+    }
+    .back { display: inline-block; margin-bottom: 32px; }
+    .back:hover { text-decoration: underline; }
+
+    /* ---------- Credit roll (Upcoming + About) ---------- */
+    .roll { max-width: 760px; margin: 0 auto; text-align: center; }
+    .roll h2 {
+      font-size: 14px; letter-spacing: 0.24em; text-transform: uppercase;
+      margin: 72px 0 28px;
+    }
+    .roll h2:first-child { margin-top: 0; }
+    .credit {
+      display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px;
+      padding: 7px 0; text-align: left;
+    }
+    .credit dt {
+      text-align: right; text-transform: uppercase;
+      font-size: 13px; letter-spacing: 0.14em; color: var(--fg-dim);
+      padding-top: 3px;
+    }
+    .credit dd { margin: 0; font-weight: 700; font-size: 18px; }
+    .credit dd small { display: block; font-weight: 400; font-size: 14px; color: var(--fg-dim); }
+    .screening {
+      border-top: 1px solid var(--hair);
+      padding: 28px 0;
+    }
+    .screening:last-of-type { border-bottom: 1px solid var(--hair); }
+    .screening .title { font-size: 30px; font-weight: 700; letter-spacing: -0.015em; margin: 6px 0 14px; }
+    .tabs { display: inline-flex; border: 2px solid var(--rule); margin-bottom: 40px; }
+    .tabs button {
+      font: inherit; font-weight: 700; font-size: 12px;
+      letter-spacing: 0.16em; text-transform: uppercase;
+      background: transparent; color: var(--fg);
+      border: 0; padding: 10px 18px; cursor: pointer;
+    }
+    .tabs button + button { border-left: 2px solid var(--rule); }
+    .tabs button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+    .about-intro { font-size: 24px; line-height: 1.4; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 24px; }
+    .about-copy { font-size: 18px; line-height: 1.6; color: var(--fg); }
+    .fin { margin-top: 96px; font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; }
+
+    /* ---------- Footer ---------- */
+    footer { border-top: 2px solid var(--rule); padding: 28px 0 40px; }
+    footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+    footer .logo-sm { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; }
+
+    @media (max-width: 760px) {
+      .wrap { padding: 0 16px; }
+      .masthead { padding: 36px 0 20px; }
+      .tagline { font-size: 10px; letter-spacing: 0.14em; }
+      .banner a { font-size: 12px; letter-spacing: 0.1em; padding: 12px 4px; }
+      .lead, .grid { grid-template-columns: 1fr; gap: 28px; }
+      .article .still { margin: 0 0 32px; }
+      .credit { column-gap: 16px; }
+      .credit dd { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="masthead wrap">
+    <a class="logo" href="#latest">End Credits</a>
+    <div class="tagline">Film &amp; the arts, after the lights come up</div>
+  </header>
+
+  <nav class="banner" aria-label="Sections">
+    <ul>
+      <li><a href="#latest" data-nav="latest">Latest</a></li>
+      <li><a href="#upcoming" data-nav="upcoming">Upcoming</a></li>
+      <li><a href="#about" data-nav="about">About Us</a></li>
+    </ul>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- LATEST -->
+    <section class="view" id="view-latest">
+      <div class="section-head"><h2>Latest</h2><span class="dim">Profiles · Interviews · Essays</span></div>
+      <div id="latest-lead"></div>
+      <div class="grid" id="latest-grid"></div>
+    </section>
+
+    <!-- ARTICLE -->
+    <section class="view" id="view-article" hidden>
+      <div class="article">
+        <a class="back kicker" href="#latest">← Latest</a>
+        <div id="article-body"></div>
+      </div>
+    </section>
+
+    <!-- UPCOMING -->
+    <section class="view" id="view-upcoming" hidden>
+      <div class="section-head"><h2>Upcoming</h2><span class="dim">Screenings &amp; digital releases</span></div>
+      <div class="roll">
+        <div class="tabs" role="group" aria-label="Filter">
+          <button type="button" data-filter="all" aria-pressed="true">All</button>
+          <button type="button" data-filter="screening" aria-pressed="false">Screenings</button>
+          <button type="button" data-filter="digital" aria-pressed="false">Digital</button>
+        </div>
+        <div id="upcoming-list"></div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="view" id="view-about" hidden>
+      <div class="section-head"><h2>About Us</h2><span class="dim">Masthead</span></div>
+      <div class="roll">
+        <p class="about-intro">End Credits is a magazine about film and the arts, written for the people who stay in their seats until the house lights come up.</p>
+        <p class="about-copy">We publish profiles, interviews and criticism, and keep a running list of screenings and releases worth leaving the house (or staying in) for. The name is the brief: we’re interested in everyone on the roll, not just the names above the title.</p>
+
+        <h2>Masthead</h2>
+        <dl>
+          <div class="credit"><dt>Founder &amp; Editor</dt><dd>Your Name</dd></div>
+          <div class="credit"><dt>Contributing Editor</dt><dd>To Be Announced</dd></div>
+          <div class="credit"><dt>Design</dt><dd>To Be Announced</dd></div>
+        </dl>
+
+        <h2>Contact</h2>
+        <dl>
+          <div class="credit"><dt>Pitches</dt><dd>pitches@endcredits.example</dd></div>
+          <div class="credit"><dt>Screenings &amp; Press</dt><dd>listings@endcredits.example</dd></div>
+          <div class="credit"><dt>Everything Else</dt><dd>hello@endcredits.example</dd></div>
+        </dl>
+
+        <div class="fin">Fin</div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span class="logo-sm">End Credits</span>
+      <span class="dim">© 2026 End Credits. Design mockup.</span>
+    </div>
+  </footer>
+
+  <script>
+    // Sample articles — swap these three entries for the real pieces.
+    const ARTICLES = [
+      {
+        slug: "projectionist",
+        type: "Interview",
+        title: "The Last Reel Changer in Town",
+        dek: "A projectionist on thirty years in the booth, cigarette burns, and why the best seat in the house has no view of the screen.",
+        author: "Staff",
+        date: "October 8, 2026",
+        tone: "#5b3a2e",
+        still: "Booth, 35mm",
+        body: [
+          "There is a small window at the back of every old cinema, and for most of the audience it might as well be a wall. Behind it, for three decades, has been the person who made sure the picture arrived.",
+          { pull: "“If I’ve done my job, you never once thought about me.”" },
+          { h: "On the booth" },
+          { q: "What did the job look like when you started?", a: "Two projectors, a stack of reels, and a timer in your head. You watched for the cue marks in the corner of the frame and switched machines on the beat." },
+          { q: "And now?", a: "Now it’s a server and a hard drive. It’s easier, and it’s quieter, and I miss the noise." },
+          "Sample copy for the mockup — replace with the final interview."
+        ]
+      },
+      {
+        slug: "credits-essay",
+        type: "Essay",
+        title: "In Praise of Staying for the Credits",
+        dek: "The roll at the end of a film is the most honest part of it: hundreds of names, one after another, in plain white type.",
+        author: "Staff",
+        date: "October 1, 2026",
+        tone: "#2e4a5b",
+        still: "Credit roll",
+        body: [
+          "Most people leave when the music changes. The lights don’t come up yet, but the spell breaks, and the rows empty from the aisles inward.",
+          "Stay, though, and you get something the film itself can’t give you: a list of everyone it took. Grips and caterers, the second unit in another country, the person whose whole job was the dog.",
+          { pull: "The credits are the film admitting it was made." },
+          "Sample copy for the mockup — replace with the final essay."
+        ]
+      },
+      {
+        slug: "repertory-profile",
+        type: "Profile",
+        title: "A Single Screen, Still Standing",
+        dek: "How a neighborhood repertory house survived streaming, a flood and a landlord — by programming the films nobody else would.",
+        author: "Staff",
+        date: "September 24, 2026",
+        tone: "#4d5232",
+        still: "Marquee, dusk",
+        body: [
+          "The marquee has three lines, and on most nights two of them are misspelled. Nobody seems to mind.",
+          "Inside, it’s one room, two hundred seats, and a calendar printed on paper and folded into thirds — a document regulars keep on the fridge.",
+          { pull: "“We don’t compete with the couch. We compete with the night being boring.”" },
+          "Sample copy for the mockup — replace with the final profile."
+        ]
+      }
+    ];
+
+    const UPCOMING = [
+      { kind: "screening", date: "Fri Oct 16 · 7:30 PM", title: "Opening Night Double Feature", where: "Neighborhood Repertory, 35mm", note: "Introduced by the End Credits editors" },
+      { kind: "digital",   date: "Tue Oct 20",           title: "Restoration Release",          where: "Streaming & digital rental",     note: "New 4K restoration with commentary" },
+      { kind: "screening", date: "Sat Oct 24 · 2:00 PM", title: "Shorts Program",               where: "Community arts center",           note: "Followed by a filmmaker Q&A" },
+      { kind: "digital",   date: "Fri Nov 6",            title: "Festival Documentary",         where: "Digital release",                 note: "Read our interview with the director" }
+    ];
+
+    const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const still = a => `<div class="still" style="--tone:${a.tone}"><span>${esc(a.still)}</span></div>`;
+
+    function renderLatest() {
+      const [lead, ...rest] = ARTICLES;
+      document.getElementById("latest-lead").innerHTML = `
+        <a class="lead" href="#article/${lead.slug}">
+          ${still(lead)}
+          <div>
+            <div class="kicker">${esc(lead.type)}</div>
+            <h3>${esc(lead.title)}</h3>
+            <p class="dek">${esc(lead.dek)}</p>
+            <div class="byline dim">By ${esc(lead.author)} · ${esc(lead.date)}</div>
+          </div>
+        </a>`;
+      document.getElementById("latest-grid").innerHTML = rest.map(a => `
+        <a class="card" href="#article/${a.slug}">
+          ${still(a)}
+          <div class="kicker" style="margin-top:18px">${esc(a.type)}</div>
+          <h3>${esc(a.title)}</h3>
+          <p class="dek">${esc(a.dek)}</p>
+          <div class="byline dim">By ${esc(a.author)} · ${esc(a.date)}</div>
+        </a>`).join("");
+    }
+
+    function renderArticle(slug) {
+      const a = ARTICLES.find(x => x.slug === slug) || ARTICLES[0];
+      const body = a.body.map(b => {
+        if (typeof b === "string") return `<p>${esc(b)}</p>`;
+        if (b.pull) return `<div class="pull">${esc(b.pull)}</div>`;
+        if (b.h) return `<h4>${esc(b.h)}</h4>`;
+        if (b.q) return `<p class="q">${esc(b.q)}</p><p>${esc(b.a)}</p>`;
+        return "";
+      }).join("");
+      document.getElementById("article-body").innerHTML = `
+        <header>
+          <div class="kicker">${esc(a.type)}</div>
+          <h1>${esc(a.title)}</h1>
+          <p class="dek">${esc(a.dek)}</p>
+          <div class="byline dim">By ${esc(a.author)} · ${esc(a.date)}</div>
+        </header>
+        ${still(a)}
+        <div class="body">${body}</div>`;
+    }
+
+    function renderUpcoming(filter = "all") {
+      document.getElementById("upcoming-list").innerHTML = UPCOMING
+        .filter(u => filter === "all" || u.kind === filter)
+        .map(u => `
+          <div class="screening">
+            <div class="kicker dim">${u.kind === "digital" ? "Digital Release" : "Screening"}</div>
+            <div class="title">${esc(u.title)}</div>
+            <dl>
+              <div class="credit"><dt>When</dt><dd>${esc(u.date)}</dd></div>
+              <div class="credit"><dt>Where</dt><dd>${esc(u.where)}</dd></div>
+              <div class="credit"><dt>Note</dt><dd>${esc(u.note)}</dd></div>
+            </dl>
+          </div>`).join("");
+    }
+
+    document.querySelectorAll(".tabs button").forEach(btn => btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-pressed", b === btn));
+      renderUpcoming(btn.dataset.filter);
+    }));
+
+    function route() {
+      const hash = location.hash.slice(1) || "latest";
+      const [view, slug] = hash.split("/");
+      const name = ["latest", "upcoming", "about", "article"].includes(view) ? view : "latest";
+      document.querySelectorAll(".view").forEach(v => v.hidden = v.id !== "view-" + name);
+      const navKey = name === "article" ? "latest" : name;
+      document.querySelectorAll("[data-nav]").forEach(a =>
+        a.dataset.nav === navKey ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+      if (name === "article") renderArticle(slug);
+      window.scrollTo(0, 0);
+    }
+
+    renderLatest();
+    renderUpcoming();
+    window.addEventListener("hashchange", route);
+    route();
+  </script>
+</body>
+</html>
