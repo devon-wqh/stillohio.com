@@ -127,10 +127,6 @@
       padding: 22px 0; margin: 2em 0;
       font-size: 28px; font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; text-align: center;
     }
-    .backbar { display: grid; grid-template-columns: 1fr 1fr; border-bottom: var(--lw) solid var(--line); }
-    .backbar a { text-align: center; padding: 14px 8px; font-size: 26px; line-height: 1; }
-    .backbar a + a { border-left: var(--lw) solid var(--line); }
-    .backbar a:hover { background: rgba(255,255,255,0.06); }
 
     /* ---------- Filters (Upcoming) ---------- */
     .filters { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: var(--lw) solid var(--line); }
@@ -208,10 +204,6 @@
 
       <!-- ARTICLE -->
       <section class="view" id="view-article" hidden>
-        <div class="backbar">
-          <a id="prev-link" href="#latest" aria-label="Previous story">&larr;</a>
-          <a id="next-link" href="#latest" aria-label="Next story">&rarr;</a>
-        </div>
         <div class="article" id="article-body"></div>
       </section>
 
@@ -342,9 +334,6 @@
     function renderArticle(slug) {
       const i = Math.max(0, ARTICLES.findIndex(x => x.slug === slug));
       const a = ARTICLES[i];
-      const n = ARTICLES.length;
-      document.getElementById("prev-link").href = "#article/" + ARTICLES[(i - 1 + n) % n].slug;
-      document.getElementById("next-link").href = "#article/" + ARTICLES[(i + 1) % n].slug;
       const body = a.body.map(b => {
         if (typeof b === "string") return `<p>${esc(b)}</p>`;
         if (b.pull) return `<div class="pull">${esc(b.pull)}</div>`;
